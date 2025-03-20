@@ -14,7 +14,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
@@ -26,11 +25,6 @@ class GameViewModel @Inject constructor(val speechDetector: SpeechDetector) : Vi
     init {
         Log.d("BalloonViewModel", "ViewModel created")
         resetGame()
-        viewModelScope.launch {
-            speechDetector.isUserSpeakingFlow
-                .onEach { isSpeaking -> processIntent(BalloonIntent.SpeakingChanged(isSpeaking)) }
-                .launchIn(this)
-        }
     }
 
     // Обработка пользовательских интентов
@@ -44,11 +38,16 @@ class GameViewModel @Inject constructor(val speechDetector: SpeechDetector) : Vi
 
     // Запуск детектора звука
     fun startDetecting() {
-        Log.d("BalloonViewModel", "Starting sound detection")
         if (!_state.value.isDetectingActive) {
+            Log.d("BalloonViewModel", "Starting sound detection")
+            speechDetector.isUserSpeakingFlow
+                .onEach { isSpeaking ->
+                    processIntent(BalloonIntent.SpeakingChanged(isSpeaking))
+                }
+                .launchIn(viewModelScope)
             speechDetector.startRecording()
+            _state.update { it.copy(isDetectingActive = true) }
         }
-        _state.update { it.copy(isDetectingActive = true) }
     }
 
     // Остановка детектора звука

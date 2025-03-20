@@ -6,6 +6,7 @@ import android.content.pm.PackageManager
 import android.os.Build
 import android.util.Log
 import androidx.annotation.RequiresApi
+import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
@@ -39,6 +40,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.airbnb.lottie.compose.LottieAnimation
 import com.airbnb.lottie.compose.LottieCompositionSpec
 import com.airbnb.lottie.compose.LottieConstants
@@ -56,10 +58,17 @@ import com.example.soundtrainer.models.BalloonState
 @Composable
 fun GameScreen(viewModel: GameViewModel, onExit: () -> Unit) {
     val state by viewModel.state.collectAsState()
+    val lifecycleOwner = LocalLifecycleOwner.current
+    Log.d("GameScreen", "Экран GameScreen создан")
 
-    DisposableEffect(Unit) {
+    LaunchedEffect(Unit) {
+        Log.d("GameScreen", "Запуск детектирования через ViewModel.")
         viewModel.startDetecting()
+    }
+
+    DisposableEffect(lifecycleOwner) {
         onDispose {
+            Log.d("GameScreen", "Остановка детектирования. Выход с экрана.")
             viewModel.stopDetecting()
         }
     }
@@ -67,7 +76,6 @@ fun GameScreen(viewModel: GameViewModel, onExit: () -> Unit) {
     // Добавляем кнопку выхода
     Box(modifier = Modifier.fillMaxSize()) {
         StarryBackground()
-
         StepsPanelAnother(
             modifier = Modifier.padding(end = 16.dp, bottom = 16.dp),
             collectedStars = state.collectedStars,
@@ -75,7 +83,6 @@ fun GameScreen(viewModel: GameViewModel, onExit: () -> Unit) {
                 viewModel.collectStar(level)
             }
         )
-
         BalloonAnimation(state, viewModel)
 
         IconButton(
@@ -87,7 +94,7 @@ fun GameScreen(viewModel: GameViewModel, onExit: () -> Unit) {
             Icon(
                 imageVector = Icons.Default.ArrowBack,
                 contentDescription = "Exit",
-                tint = Color.Black
+                tint = Color.White
             )
         }
     }
@@ -101,6 +108,15 @@ private fun BalloonAnimation(state: BalloonState, viewModel: GameViewModel) {
             durationMillis = if (state.isSpeaking) (BalloonConstants.RISE_DISTANCE / BalloonConstants.RISE_SPEED * 1000).toInt()
             else (BalloonConstants.RISE_DISTANCE / BalloonConstants.FALL_SPEED * 1000).toInt(),
             easing = LinearEasing
+        ),
+        label = "BalloonAnimation"
+    )
+
+    val animatedX by animateFloatAsState(
+        targetValue = state.xOffset,
+        animationSpec = tween(
+            durationMillis = 1500,
+            easing = CubicBezierEasing(0.4f, 0.0f, 0.2f, 1.0f)
         ),
         label = "BalloonAnimation"
     )
@@ -123,13 +139,12 @@ private fun BalloonAnimation(state: BalloonState, viewModel: GameViewModel) {
         modifier = Modifier
             .size(180.dp) // Размер шара
             .offset(
-                x = state.xOffset.dp,
+                x = animatedX.dp,
                 y = animatedY.dp
             ),
-
         )
 
-    Log.d("BalloonAnimation", "Animated Y: $animatedY")
+    //Log.d("BalloonAnimation", "Animated Y: $animatedY")
 
     LaunchedEffect(animatedY) {
         if (state.currentLevel < BalloonConstants.LOTTIE_LEVEL_HEIGHTS.size &&
@@ -176,199 +191,6 @@ fun StepsPanelAnother(
                 val colors =
                     BalloonConstants.MOUNTAIN_COLORS[index % BalloonConstants.MOUNTAIN_COLORS.size]
 
-                // Рисуем гору с градиентом
-//                Path().apply {
-//                    val startX = currentX + paddingFromBalloon
-//                    val baseWidth = stairWidth * 1.2f
-//
-//                    moveTo(startX - baseWidth * 0.1f, size.height)
-//                    cubicTo(
-//                        startX + baseWidth * 0.2f, size.height - height * 0.3f,
-//                        startX + baseWidth * 0.4f, size.height - height * 0.8f,
-//                        startX + baseWidth * 0.5f, size.height - height
-//                    )
-//                    cubicTo(
-//                        startX + baseWidth * 0.6f, size.height - height * 0.8f,
-//                        startX + baseWidth * 0.8f, size.height - height * 0.3f,
-//                        startX + baseWidth * 1.1f, size.height
-//                    )
-//                    close()
-//                }.let { path ->
-//                    drawPath(
-//                        path = path,
-//                        brush = Brush.verticalGradient(
-//                            colors = colors,
-//                            startY = size.height - height,
-//                            endY = size.height
-//                        ),
-//                        style = Fill
-//                    )
-//
-//                    // Добавляем тень для объема
-//                    drawPath(
-//                        path = path,
-//                        color = Color.Black.copy(alpha = 0.1f),
-//                        style = Stroke(width = 2f)
-//                    )
-//                }
-
-
-                // Основной цвет горы
-                // val mountainColor = BalloonConstants.STAIR_COLORS[index]
-
-                // Рисуем основную гору
-//                val mountainPath = androidx.compose.ui.graphics.Path().apply {
-//                    val startX = currentX + paddingFromBalloon
-//                    val peakX1 = startX + stairWidth * 0.3f
-//                    val peakX2 = startX + stairWidth * 0.7f
-//                    val peakY = size.height - height * 1.1f
-//
-//                    moveTo(startX, size.height)
-//                    quadraticTo(
-//                        peakX1,
-//                        size.height - height * 0.8f,
-//                        startX + stairWidth * 0.5f,
-//                        size.height - height
-//                    )
-//                    quadraticTo(
-//                        peakX2,
-//                        size.height - height * 0.8f,
-//                        startX + stairWidth,
-//                        size.height
-//                    )
-//                    close()
-//                }
-//
-//                drawPath(
-//                    path = mountainPath,
-//                    color = mountainColor,
-//                    style = Fill
-//                )
-
-                // Новая форма горы с плавными изгибами
-//                val mountainPath = androidx.compose.ui.graphics.Path().apply {
-//                    val startX = currentX + paddingFromBalloon
-//                    val baseWidth = stairWidth * 1.2f // Расширили основание
-//
-//                    moveTo(startX - baseWidth * 0.1f, size.height) // Начало слева с небольшим выступом
-//                    cubicTo(
-//                        startX + baseWidth * 0.2f, size.height - height * 0.3f, // Контрольная точка 1
-//                        startX + baseWidth * 0.4f, size.height - height * 0.8f, // Контрольная точка 2
-//                        startX + baseWidth * 0.5f, size.height - height          // Вершина
-//                    )
-//                    cubicTo(
-//                        startX + baseWidth * 0.6f, size.height - height * 0.8f, // Контрольная точка 3
-//                        startX + baseWidth * 0.8f, size.height - height * 0.3f,  // Контрольная точка 4
-//                        startX + baseWidth * 1.1f, size.height                  // Конец справа с выступом
-//                    )
-//                    close()
-//                }
-
-//                drawPath(
-//                    path = mountainPath,
-//                    color = BalloonConstants.STAIR_COLORS[index],
-//                    style = Fill
-//                )
-
-//                androidx.compose.ui.graphics.Path().apply {
-//                    moveTo(currentX + paddingFromBalloon - stairWidth * 0.1f, size.height)
-//                    cubicTo(
-//                        currentX + paddingFromBalloon + stairWidth * 0.2f,
-//                        size.height - height * 0.4f,
-//                        currentX + paddingFromBalloon + stairWidth * 0.4f,
-//                        size.height - height * 0.7f,
-//                        currentX + paddingFromBalloon + stairWidth * 0.5f,
-//                        size.height - height
-//                    )
-//                    cubicTo(
-//                        currentX + paddingFromBalloon + stairWidth * 0.6f,
-//                        size.height - height * 0.7f,
-//                        currentX + paddingFromBalloon + stairWidth * 0.8f,
-//                        size.height - height * 0.4f,
-//                        currentX + paddingFromBalloon + stairWidth * 1.1f,
-//                        size.height
-//                    )
-//                    close()
-//                }.let { path ->
-//                    drawPath(
-//                        path = path,
-//                        brush = Brush.verticalGradient(
-//                            colors = listOf(
-//                                mountainColor,
-//                                mountainColor.copy(alpha = 0.8f)
-//                            ),
-//                            startY = size.height - height,
-//                            endY = size.height
-//                        ),
-//                        style = Fill
-//                    )
-//                }
-
-                // Рисуем деревья
-//                repeat(15) { // Количество деревьев
-//                    val treeX = currentX + paddingFromBalloon + random.nextFloat() * stairWidth
-//                    val treeBaseY = size.height - random.nextFloat() * height * 0.5f
-//                    val treeHeight = 40f * density.density
-//
-//                    // Ствол дерева
-//                    drawRect(
-//                        color = Color(0xFF5D4037),
-//                        topLeft = Offset(treeX - 4f, treeBaseY - treeHeight),
-//                        size = Size(8f, treeHeight)
-//                    )
-//
-//                    // Крона дерева
-//                    drawCircle(
-//                        color = Color(0xFF388E3C),
-//                        center = Offset(treeX, treeBaseY - treeHeight - 30f),
-//                        radius = 25f
-//                    )
-//                }
-
-                // Отрисовка деревьев
-//                treePositions[index].forEach { (relX, relY) ->
-//                    val baseX = currentX + paddingFromBalloon
-//                    val treeX = baseX + relX * stairWidth
-//                    val treeBaseY = size.height - height * relY
-//                    val treeHeight = 40f * density.density
-//
-//                    // Проверка границ горы
-//                    if (treeX in baseX..(baseX + stairWidth)) {
-//                        drawRect(
-//                            color = Color(0xFF5D4037),
-//                            topLeft = Offset(treeX - 4f, treeBaseY - treeHeight),
-//                            size = Size(8f, treeHeight)
-//                        )
-//
-//                        drawCircle(
-//                            color = Color(0xFF388E3C),
-//                            center = Offset(treeX, treeBaseY - treeHeight - 30f),
-//                            radius = 25f
-//                        )
-//                    }
-//                }
-
-                // Статичные деревья
-//                treePositions[index].forEach { (relX, relY) ->
-//                    val treeX = currentX + paddingFromBalloon + relX * stairWidth
-//                    val treeBaseY = size.height - height * relY
-//                    val treeHeight = 40f * density.density
-//
-//                    // Ствол (без смещения)
-//                    drawRect(
-//                        color = Color(0xFF5D4037),
-//                        topLeft = Offset(treeX - 4f, treeBaseY - treeHeight),
-//                        size = Size(8f, treeHeight)
-//                    )
-//
-//                    // Крона (без смещения)
-//                    drawCircle(
-//                        color = Color(0xFF388E3C),
-//                        center = Offset(treeX, treeBaseY - treeHeight - 30f),
-//                        radius = 25f
-//                    )
-//                }
-
                 // Рисуем блок с градиентом как у гор
                 drawRoundRect(
                     Brush.linearGradient(
@@ -384,59 +206,16 @@ fun StepsPanelAnother(
                     cornerRadius = CornerRadius(cornerRadius.toPx(), cornerRadius.toPx())
                 )
 
-//                drawRoundRect(
-//                    color = color,
-//                    size = Size(stairWidth, height),
-//                    topLeft = Offset(
-//                        x = currentX + paddingFromBalloon,
-//                        y = size.height - height
-//                    ),
-//                    cornerRadius = CornerRadius(cornerRadius.toPx(), cornerRadius.toPx())
-//                )
-
                 // Сохраняем позицию для звезды
                 starPositions[index] = Offset(
                     x = currentX + paddingFromBalloon - stairWidth / 3,
                     y = size.height - height - starRadius
                 )
 
-                // Рисуем звезду, если не собрана
-//                if (index < collectedStars.size && !collectedStars[index]) {
-//                    val center = Offset(
-//                        x = currentX + paddingFromBalloon + stairWidth / 2,
-//                        y = size.height - height - starRadius
-//                    )
-//                    drawStar(center, starRadius, Color.Yellow)
-//                }
-
-//
-
-//                if (collectedStars.getOrNull(index) == false) {
-//                    starPositions[index]?.let { position ->
-//                        StarItem(
-//                            position = position,
-//                            density = density,
-//                            onCollect = { onStarCollected(index) }
-//                    }
-//                }
                 currentX -= stairWidth
             }
-
-//            // Рисуем туман у основания
-//            drawCircle(
-//                brush = Brush.radialGradient(
-//                    colors = listOf(
-//                        Color.White.copy(alpha = 0.15f),
-//                        Color.Transparent
-//                    ),
-//                    radius = size.width * 0.4f
-//                ),
-//                radius = size.width * 0.35f,
-//                blendMode = BlendMode.Overlay
-//            )
         }
         BalloonConstants.LEVEL_HEIGHTS.forEachIndexed { index, _ ->
-            // if (collectedStars.getOrNull(index) == false) {
             starPositions[index]?.let { position ->
                 StarItem(
                     position = position,
@@ -463,11 +242,6 @@ fun StarItem(
             .offset(x = xDp, y = yDp)
             .size(120.dp)
     ) {
-        println("Katya isCollected $isCollected")
-//        AnimatedStar(
-//            isCollected = isCollected,
-//            onCollect = onCollect
-//        )
 
         if (!isCollected) {
             AnimatedStar(

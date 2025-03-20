@@ -21,7 +21,8 @@ fun AppNavigation() {
         GameScreen(viewModel, onExit = { gameStarted = false })
     } else {
         StartScreen(
-            onStartGame = { gameStarted = true }
+            onStartGame = { gameStarted = true },
+            hiltViewModel()
         )
     }
 }

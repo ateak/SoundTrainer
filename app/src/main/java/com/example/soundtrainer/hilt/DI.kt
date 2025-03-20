@@ -6,6 +6,8 @@ import com.example.soundtrainer.data.SpeechDetector
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
+import dagger.hilt.android.components.ViewModelComponent
+import dagger.hilt.android.scopes.ViewModelScoped
 import dagger.hilt.components.SingletonComponent
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -23,11 +25,11 @@ object AppModule {
 }
 
 @Module
-@InstallIn(SingletonComponent::class)
+@InstallIn(ViewModelComponent::class)
 object SpeechModule {
 
     @Provides
-    @Singleton
+    @ViewModelScoped
     fun provideSpeechDetector(scope: CoroutineScope): SpeechDetector {
         Log.d("DI", "SpeechDetector создан")
         return SpeechDetector(scope)

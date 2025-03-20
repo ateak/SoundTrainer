@@ -21,22 +21,9 @@ class SpeechDetector(private val coroutineScope: CoroutineScope) {
     private var isRecording = false
     private val _isUserSpeakingFlow = MutableStateFlow(false)
     val isUserSpeakingFlow: StateFlow<Boolean> = _isUserSpeakingFlow.asStateFlow()
-
-   //val isUserSpeakingFlow = MutableStateFlow(false)
-    //private val coroutineScope = CoroutineScope(viewModelScope.coroutineContext)
     private var job: Job? = null
 
-
-
-    // private val sampleRate = 16000 //44100 ранее было
-    //private val amplitudeThreshold = 1000  // Минимальный уровень громкости
-
     fun startRecording() {
-//        if (audioRecord != null) {
-//            Log.d("SpeechDetector", "Already recording")
-//            return
-//        }
-
         if (isRecording) {
             Log.d("SpeechDetector", "Already recording")
             return
@@ -44,18 +31,7 @@ class SpeechDetector(private val coroutineScope: CoroutineScope) {
 
         Log.d("SpeechDetector", "Starting recording...")
 
-        // Явная проверка разрешения
-//        if (ContextCompat.checkSelfPermission(
-//                context,
-//                Manifest.permission.RECORD_AUDIO
-//            ) != PackageManager.PERMISSION_GRANTED
-//        ) {
-//            Log.w("SpeechDetector", "No RECORD_AUDIO permission, cannot start recording.")
-//            return
-//        }
-
         try {
-
             val bufferSize = AudioRecord.getMinBufferSize(
                 BalloonConstants.SAMPLE_RATE,
                 AudioFormat.CHANNEL_IN_MONO,
@@ -66,12 +42,12 @@ class SpeechDetector(private val coroutineScope: CoroutineScope) {
                 MediaRecorder.AudioSource.MIC, BalloonConstants.SAMPLE_RATE,
                 AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT, bufferSize
             )
-                audioRecord?.startRecording()
-                isRecording = true
-                Log.d("SpeechDetector", "Recording started successfully")
-
+            audioRecord?.startRecording()
+            isRecording = true
+            Log.d("SpeechDetector", "Recording started successfully")
 
             job = coroutineScope.launch(Dispatchers.IO) {
+                delay(500)
                 val buffer = ShortArray(bufferSize)
                 while (isActive && isRecording) {
                     val readSize = audioRecord?.read(buffer, 0, buffer.size) ?: 0
@@ -90,7 +66,6 @@ class SpeechDetector(private val coroutineScope: CoroutineScope) {
             Log.e("SpeechDetector", "Error starting recording", e)
             stopRecording()
         }
-
     }
 
     fun stopRecording() {
@@ -103,4 +78,3 @@ class SpeechDetector(private val coroutineScope: CoroutineScope) {
         job?.cancel()
     }
 }
-
