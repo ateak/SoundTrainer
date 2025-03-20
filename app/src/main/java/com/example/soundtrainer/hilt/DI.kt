@@ -2,7 +2,7 @@ package com.example.soundtrainer.hilt
 
 
 import android.util.Log
-import com.example.soundtrainer.SpeechDetector
+import com.example.soundtrainer.data.SpeechDetector
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn

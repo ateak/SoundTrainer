@@ -1,53 +1,57 @@
-package com.example.soundtrainer
+package com.example.soundtrainer.presentation
 
+import android.Manifest
+import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
-import android.Manifest
-import android.graphics.drawable.Icon
-import android.util.Log
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Icon
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SegmentedButtonDefaults.Icon
+import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.airbnb.lottie.compose.LottieAnimation
+import com.airbnb.lottie.compose.LottieCompositionSpec
+import com.airbnb.lottie.compose.LottieConstants
+import com.airbnb.lottie.compose.animateLottieCompositionAsState
+import com.airbnb.lottie.compose.rememberLottieComposition
+import com.example.soundtrainer.R
 
 @Composable
-fun StartScreen(
-    onStartGame: () -> Unit,
-    viewModel: BalloonViewModel
-) {
+fun StartScreen(onStartGame: () -> Unit) {
     val context = LocalContext.current
     var showPermissionDialog by remember { mutableStateOf(false) }
+
+    // Настройка Lottie-анимации
+    val composition by rememberLottieComposition(
+        LottieCompositionSpec.RawRes(R.raw.rocket_animation)
+    )
+    val progress by animateLottieCompositionAsState(
+        composition = composition,
+        iterations = LottieConstants.IterateForever,
+        speed = 1f
+    )
 
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { isGranted ->
         if (isGranted) {
             Log.d("StartScreen", "Permission granted")
-            viewModel.initializeDetector()
-            viewModel.startDetecting()
             onStartGame()
         } else {
             Log.d("StartScreen", "Permission denied")
@@ -79,34 +83,32 @@ fun StartScreen(
                 color = MaterialTheme.colorScheme.primary
             )
 
-            Icon(
-                painter = painterResource(R.drawable.ic_launcher_foreground), // Добавьте свою иконку
-                contentDescription = "Микрофон",
-                modifier = Modifier.size(120.dp),
-                tint = MaterialTheme.colorScheme.secondary
+            LottieAnimation(
+                composition = composition,
+                progress = { progress },
+                modifier = Modifier.size(250.dp)
             )
 
-            Button(onClick = {
-                Log.d("StartScreen", "Start button clicked")
+            Button(
+                onClick = {
+                    Log.d("StartScreen", "Start button clicked")
 
-                if (context.hasAudioPermission()) {
-                    viewModel.initializeDetector()
-                    viewModel.startDetecting()
-                    Log.d("StartScreen", "Permission already granted, starting game")
-
-                    onStartGame()
-                } else {
-                    Log.d("StartScreen", "Requesting permission")
-                    permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                    if (context.hasAudioPermission()) {
+                        Log.d("StartScreen", "Permission already granted, starting game")
+                        onStartGame()
+                    } else {
+                        Log.d("StartScreen", "Requesting permission")
+                        permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                    }
                 }
-            }) {
-                Text("Начать игру")
+            ) {
+                Text("Начать игру", style = MaterialTheme.typography.titleMedium)
             }
 
             Text(
                 text = "Говорите в микрофон, чтобы поднять шарик!",
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.8f),
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
                 textAlign = TextAlign.Center,
                 modifier = Modifier.padding(horizontal = 24.dp)
             )
@@ -124,10 +126,10 @@ private fun PermissionDialog(
         AlertDialog(
             onDismissRequest = onDismiss,
             title = { Text("Требуется доступ") },
-            text = { Text("Разрешите доступ к микрофону для игры") },
+            text = { Text("Для игры необходимо разрешение на использование микрофона") },
             confirmButton = {
                 Button(onClick = onRetry) {
-                    Text("Повторить")
+                    Text("Дать разрешение")
                 }
             },
             dismissButton = {
@@ -138,6 +140,3 @@ private fun PermissionDialog(
         )
     }
 }
-
-
-

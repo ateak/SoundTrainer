@@ -1,34 +1,33 @@
 package com.example.soundtrainer
 
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
-import androidx.navigation.compose.rememberNavController
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.example.soundtrainer.presentation.GameScreen
+import com.example.soundtrainer.presentation.StartScreen
 
-//@Composable
-//fun AppNavigation(viewModel: BalloonViewModel) {
-//    var gameStarted by rememberSaveable { mutableStateOf(false) }
-//    println("Katya gameStarted $gameStarted")
-//
-//    if (gameStarted) {
-//        println("Katya Ballonscreen")
-//        BalloonScreen(viewModel, onExit = { gameStarted = false })
-//    } else {
-//        println("Katya startscreen")
-//
-//        StartScreen(
-//            onStartGame = { gameStarted = true },
-//            viewModel = viewModel
-//        )
-//    }
-//}
+@RequiresApi(Build.VERSION_CODES.VANILLA_ICE_CREAM)
+@Composable
+fun AppNavigation() {
+    val viewModel: GameViewModel = hiltViewModel()
+    var gameStarted by rememberSaveable { mutableStateOf(false) }
+
+    if (gameStarted) {
+        GameScreen(viewModel, onExit = { gameStarted = false })
+    } else {
+        StartScreen(
+            onStartGame = { gameStarted = true }
+        )
+    }
+}
+
+
+//TODO добавить попозже navigation
 
 //@Composable
 //fun AppNavigation() {
@@ -52,20 +51,3 @@ import androidx.hilt.navigation.compose.hiltViewModel
 //        }
 //    }
 //}
-
-@Composable
-fun AppNavigation() {
-    var hasPermission by remember { mutableStateOf(false) }
-
-    if (hasPermission) {
-        println("Katya Ballonscreen")
-        BalloonScreen( hiltViewModel(), onExit = { })
-    } else {
-        println("Katya startscreen")
-
-        MicrophonePermissionScreen(
-            onPermissionGranted = { hasPermission = true },
-            onPermissionDenied = { /* Обработка отказа */ }
-        )
-    }
-}

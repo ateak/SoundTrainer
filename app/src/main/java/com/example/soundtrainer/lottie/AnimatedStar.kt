@@ -12,9 +12,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
 import com.airbnb.lottie.compose.LottieAnimation
 import com.airbnb.lottie.compose.LottieCompositionSpec
-import com.airbnb.lottie.compose.LottieConstants
 import com.airbnb.lottie.compose.animateLottieCompositionAsState
 import com.airbnb.lottie.compose.rememberLottieComposition
 import com.example.soundtrainer.R
@@ -31,7 +31,7 @@ fun AnimatedStar(
 
     // Анимация сбора
     val compositionAfterEating by rememberLottieComposition(
-        spec = LottieCompositionSpec.RawRes(R.raw.star_animation_after_eating)
+        spec = LottieCompositionSpec.RawRes(R.raw.star_animation_after_eating_3)
     )
 
     val composition = if (isCollected) compositionAfterEating else compositionBeforeEating
@@ -60,10 +60,13 @@ fun AnimatedStar(
         composition = composition,
         progress = { progress },
         modifier = modifier
-            .size(120.dp)
-           // .clickable { if (!isCollected) onCollect() }
-            .clickable(enabled = !isCollected) { onCollect() }
             .background(Color.Transparent)
+
+            .zIndex(0.5f)
+            .size(120.dp)
+            .clickable(enabled = !isCollected) {
+                if (!isCollected) onCollect()
+            }
     )
         }
 
