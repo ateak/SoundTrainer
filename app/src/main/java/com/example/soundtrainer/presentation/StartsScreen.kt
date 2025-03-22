@@ -9,9 +9,11 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -22,6 +24,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -145,7 +148,7 @@ fun StartsScreen(
             verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
             Text(
-                text = "VoiceToStars",
+                text = stringResource(R.string.app_name),
                 style = MaterialTheme.typography.headlineLarge,
                 color = MaterialTheme.colorScheme.primary
             )
@@ -182,16 +185,45 @@ fun StartsScreen(
                     }
                 }
             ) {
-                Text("Начать игру", style = MaterialTheme.typography.titleMedium)
+                Text(stringResource(R.string.start_game_button), style = MaterialTheme.typography.titleMedium)
             }
 
             Text(
-                text = "Говорите, чтобы управлять космонавтом!",
+                text = stringResource(R.string.text_explanation),
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.inverseOnSurface.copy(alpha = 0.8f),
                 textAlign = TextAlign.Center,
                 modifier = Modifier.padding(horizontal = 24.dp)
             )
+
+            if (screenState.value.showPermissionDialog) {
+                AlertDialog(
+                    onDismissRequest = {
+                        screenState.value = screenState.value.copy(showPermissionDialog = false)
+                    },
+                    title = { Text(stringResource(R.string.permission_dialog_title)) },
+                    text = { Text(stringResource(R.string.permission_dialog_message)) },
+                    confirmButton = {
+                        TextButton(
+                            onClick = {
+                                screenState.value = screenState.value.copy(showPermissionDialog = false)
+                                permissionState.launchPermissionRequest()
+                            }
+                        ) {
+                            Text(stringResource(R.string.permission_dialog_confirm))
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(
+                            onClick = {
+                                screenState.value = screenState.value.copy(showPermissionDialog = false)
+                            }
+                        ) {
+                            Text(stringResource(R.string.permission_dialog_cancel))
+                        }
+                    }
+                )
+            }
         }
     }
 }

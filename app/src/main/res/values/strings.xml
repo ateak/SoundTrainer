@@ -1,3 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">SoundTrainer</string>
+    <!-- App name -->
+    <string name="app_name">VoiceToStars</string>
+
+    <!-- Start Screen -->
+    <string name="start_game_button">Начать игру</string>
+    <string name="permission_dialog_title">Требуется разрешение</string>
+    <string name="permission_dialog_message">Для работы приложения необходим доступ к микрофону. Хотите предоставить его?</string>
+    <string name="permission_dialog_confirm">Разрешить</string>
+    <string name="permission_dialog_cancel">Отмена</string>
+    <string name="text_explanation">Говорите, чтобы управлять космонавтом!</string>
+
+    <!-- Game Screen -->
+    <string name="exit_button_description">Выход</string>
+
 </resources>

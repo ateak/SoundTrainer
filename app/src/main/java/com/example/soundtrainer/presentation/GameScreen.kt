@@ -18,11 +18,13 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.example.soundtrainer.GameViewModel
+import com.example.soundtrainer.R
 import com.example.soundtrainer.presentation.background.StarsBackground
 import com.example.soundtrainer.presentation.components.AstronautAnimation
 import com.example.soundtrainer.presentation.components.Levels
@@ -86,7 +88,7 @@ fun GameScreen(viewModel: GameViewModel, onExit: () -> Unit) {
         ) {
             Icon(
                 imageVector = Icons.Default.ArrowBack,
-                contentDescription = "Exit",
+                contentDescription = stringResource(R.string.exit_button_description),
                 tint = Color.White
             )
         }
