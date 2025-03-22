@@ -8,7 +8,7 @@ import android.media.AudioRecord
 import android.media.MediaRecorder
 import android.util.Log
 import androidx.core.content.ContextCompat
-import com.example.soundtrainer.models.BalloonConstants
+import com.example.soundtrainer.models.GameConstants
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -55,14 +55,14 @@ class SpeechDetectorImpl(
 
         try {
             val bufferSize = AudioRecord.getMinBufferSize(
-                BalloonConstants.SAMPLE_RATE,
+                GameConstants.SAMPLE_RATE,
                 AudioFormat.CHANNEL_IN_MONO,
                 AudioFormat.ENCODING_PCM_16BIT
             )
 
             audioRecord = AudioRecord(
                 MediaRecorder.AudioSource.MIC,
-                BalloonConstants.SAMPLE_RATE,
+                GameConstants.SAMPLE_RATE,
                 AudioFormat.CHANNEL_IN_MONO,
                 AudioFormat.ENCODING_PCM_16BIT,
                 bufferSize
@@ -101,11 +101,11 @@ class SpeechDetectorImpl(
                                     zeroAmplitudeCount = 0
                                 }
                                 
-                                _isUserSpeakingFlow.value = amplitude > BalloonConstants.AMPLITUDE_THRESHOLD
+                                _isUserSpeakingFlow.value = amplitude > GameConstants.AMPLITUDE_THRESHOLD
                                 Log.d(TAG, "Amplitude: $amplitude")
                             }
                         }
-                        delay(BalloonConstants.SOUND_CHECK_INTERVAL)
+                        delay(GameConstants.SOUND_CHECK_INTERVAL)
                     } catch (e: Exception) {
                         Log.e(TAG, "Error reading audio data", e)
                         delay(200)

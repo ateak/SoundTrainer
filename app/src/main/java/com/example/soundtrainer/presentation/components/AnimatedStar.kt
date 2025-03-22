@@ -1,4 +1,4 @@
-package com.example.soundtrainer.lottie
+package com.example.soundtrainer.presentation.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.size
@@ -25,7 +25,7 @@ fun AnimatedStar(
     isCollected: Boolean,
     onCollect: () -> Unit
 ) {
-    // звезды, которые герой собирает
+    // звезды, которые космонавт собирает
     val mainStar by rememberLottieComposition(
         spec = LottieCompositionSpec.RawRes(R.raw.star_animation_before))
 

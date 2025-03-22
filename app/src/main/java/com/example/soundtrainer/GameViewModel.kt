@@ -4,9 +4,9 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.soundtrainer.data.SpeechDetector
-import com.example.soundtrainer.models.BalloonConstants
-import com.example.soundtrainer.models.BalloonIntent
-import com.example.soundtrainer.models.AstronautState
+import com.example.soundtrainer.models.GameConstants
+import com.example.soundtrainer.models.GameIntent
+import com.example.soundtrainer.models.GameState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -25,8 +25,8 @@ class GameViewModel @Inject constructor(val speechDetector: SpeechDetector) : Vi
         private const val TAG = "GameViewModel"
     }
 
-    private val _state = MutableStateFlow(AstronautState.Initial)
-    val state: StateFlow<AstronautState> = _state.asStateFlow()
+    private val _state = MutableStateFlow(GameState.Initial)
+    val state: StateFlow<GameState> = _state.asStateFlow()
 
     init {
         Log.d(TAG, "ViewModel created")
@@ -34,10 +34,10 @@ class GameViewModel @Inject constructor(val speechDetector: SpeechDetector) : Vi
     }
 
     // Обработка пользовательских интентов
-    fun processIntent(intent: BalloonIntent) {
+    fun processIntent(intent: GameIntent) {
         when (intent) {
-            is BalloonIntent.SpeakingChanged -> handleSpeakingState(intent.isSpeaking)
-            is BalloonIntent.LevelReached -> handleLevelAchieved(intent.level)
+            is GameIntent.SpeakingChanged -> handleSpeakingState(intent.isSpeaking)
+            is GameIntent.LevelReached -> handleLevelAchieved(intent.level)
         }
     }
 
@@ -64,7 +64,7 @@ class GameViewModel @Inject constructor(val speechDetector: SpeechDetector) : Vi
             // Запускаем новое детектирование
             speechDetector.isUserSpeakingFlow
                 .onEach { isSpeaking ->
-                    processIntent(BalloonIntent.SpeakingChanged(isSpeaking))
+                    processIntent(GameIntent.SpeakingChanged(isSpeaking))
                 }
                 .launchIn(viewModelScope)
                 
@@ -90,7 +90,7 @@ class GameViewModel @Inject constructor(val speechDetector: SpeechDetector) : Vi
         _state.update { it.copy(isDetectingActive = false) }
     }
 
-    // Сбор звездочек героем
+    // Сбор звездочек астронавтом
     fun collectStar(level: Int) {
         _state.update { currentState ->
             if (level < currentState.collectedStars.size) {
@@ -104,12 +104,12 @@ class GameViewModel @Inject constructor(val speechDetector: SpeechDetector) : Vi
     // Обновление состояния при изменении речи
     private fun handleSpeakingState(isSpeaking: Boolean) {
         _state.update { currentState ->
-            if (currentState.currentLevel >= BalloonConstants.LOTTIE_LEVEL_HEIGHTS.size) return@update currentState
+            if (currentState.currentLevel >= GameConstants.REACHED_LEVEL_HEIGHTS.size) return@update currentState
 
             val newPosition = calculateNewPosition(currentState, isSpeaking)
             currentState.copy(
                 isSpeaking = isSpeaking,
-                balloonPosition = newPosition
+                currentPosition = newPosition
             )
         }
     }
@@ -117,13 +117,13 @@ class GameViewModel @Inject constructor(val speechDetector: SpeechDetector) : Vi
     // Обработка достижения нового уровня
     private fun handleLevelAchieved(level: Int) {
         _state.update { currentState ->
-            if (level >= BalloonConstants.LOTTIE_LEVEL_HEIGHTS.size) return@update currentState
+            if (level >= GameConstants.REACHED_LEVEL_HEIGHTS.size) return@update currentState
 
             val newStars = updateStars(currentState.collectedStars, level)
             currentState.copy(
                 currentLevel = level + 1,
-                baseY = BalloonConstants.LOTTIE_LEVEL_HEIGHTS[level],
-                offsetX = BalloonConstants.LOTTIE_STAIR_OFFSETS[level],
+                baseY = GameConstants.REACHED_LEVEL_HEIGHTS[level],
+                offsetX = GameConstants.STAIR_OFFSETS[level],
                 collectedStars = newStars
             ).also {
                 Log.d(TAG, "Level $level achieved. Stars: $newStars")
@@ -132,13 +132,13 @@ class GameViewModel @Inject constructor(val speechDetector: SpeechDetector) : Vi
     }
 
     // Расчет новой позиции Y космонавта
-    private fun calculateNewPosition(state: AstronautState, isSpeaking: Boolean): Float {
+    private fun calculateNewPosition(state: GameState, isSpeaking: Boolean): Float {
         val targetY = if (isSpeaking) {
             // Рассчитываем целевую позицию от текущей базовой высоты
-            state.balloonPosition - BalloonConstants.RISE_DISTANCE
+            state.currentPosition - GameConstants.RISE_DISTANCE
         } else {
             // При падении не опускаемся ниже текущего уровня
-            state.balloonPosition + BalloonConstants.FALL_SPEED
+            state.currentPosition + GameConstants.FALL_SPEED
         }
             .coerceIn(getCurrentLevelHeight(state.currentLevel)..state.baseY)
         return targetY
@@ -147,7 +147,7 @@ class GameViewModel @Inject constructor(val speechDetector: SpeechDetector) : Vi
     // Обновление списка собранных звезд
     private fun updateStars(stars: List<Boolean>, level: Int): List<Boolean> {
         //чтобы звезды по мере их собирания исчезали снизу вверх иначе все наоборот
-        val correctedLevel = BalloonConstants.LOTTIE_LEVEL_HEIGHTS.size - 1 - level
+        val correctedLevel = GameConstants.REACHED_LEVEL_HEIGHTS.size - 1 - level
         return stars.toMutableList().apply {
             if (correctedLevel < size) set(correctedLevel, true)
         }
@@ -156,15 +156,15 @@ class GameViewModel @Inject constructor(val speechDetector: SpeechDetector) : Vi
     // Сброс игры к начальному состоянию
     fun resetGame() {
         _state.update {
-            AstronautState.Initial.copy(
-                collectedStars = List(BalloonConstants.LEVEL_HEIGHTS.size) { false }
+            GameState.Initial.copy(
+                collectedStars = List(GameConstants.LEVEL_HEIGHTS.size) { false }
             )
         }
         Log.d(TAG, "Game state reset")
     }
 
     private fun getCurrentLevelHeight(level: Int) =
-        BalloonConstants.LOTTIE_LEVEL_HEIGHTS.getOrElse(level) { AstronautState.Initial.baseY }
+        GameConstants.REACHED_LEVEL_HEIGHTS.getOrElse(level) { GameState.Initial.baseY }
 
     override fun onCleared() {
         super.onCleared()

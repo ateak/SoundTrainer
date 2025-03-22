@@ -1,7 +1,7 @@
 package com.example.soundtrainer.models
 
-data class AstronautState(
-    val balloonPosition: Float, // Текущая позиция космонавта, управляется анимацией
+data class GameState(
+    val currentPosition: Float, // Текущая позиция космонавта, управляется анимацией
     val currentLevel: Int, // Текущий достигнутый уровень (индекс в списке уровней)
     val offsetX: Float, // Смещение космонавта по X при переходе на новый уровень
     val baseY: Float, // Базовая позиция Y, от которой рассчитывается подъем/падение космонавта
@@ -10,11 +10,11 @@ data class AstronautState(
     val collectedStars: List<Boolean>,
 ) {
     companion object {
-        val Initial = AstronautState(
-            balloonPosition = BalloonConstants.INITIAL_LOTTIE_Y,
+        val Initial = GameState(
+            currentPosition = GameConstants.BASE_Y,
             currentLevel = 0,
             offsetX = 0f,
-            baseY = BalloonConstants.INITIAL_LOTTIE_Y,
+            baseY = GameConstants.BASE_Y,
             isSpeaking = false,
             isDetectingActive = false,
             collectedStars = emptyList()

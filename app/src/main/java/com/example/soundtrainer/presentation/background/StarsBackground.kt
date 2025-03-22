@@ -1,4 +1,4 @@
-package com.example.soundtrainer.presentation
+package com.example.soundtrainer.presentation.background
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.fillMaxSize
@@ -12,7 +12,7 @@ import androidx.compose.ui.unit.dp
 import kotlin.random.Random
 
 @Composable
-fun StarryBackground() {
+fun StarsBackground() {
     val stars = remember { generateStars(200) } // Генерируем 200 звезд
 
     Canvas(modifier = Modifier.fillMaxSize()) {
