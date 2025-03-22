@@ -6,24 +6,30 @@ import androidx.lifecycle.viewModelScope
 import com.example.soundtrainer.data.SpeechDetector
 import com.example.soundtrainer.models.BalloonConstants
 import com.example.soundtrainer.models.BalloonIntent
-import com.example.soundtrainer.models.BalloonState
+import com.example.soundtrainer.models.AstronautState
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
 class GameViewModel @Inject constructor(val speechDetector: SpeechDetector) : ViewModel() {
 
-    private val _state = MutableStateFlow(BalloonState.Initial)
-    val state: StateFlow<BalloonState> = _state.asStateFlow()
+    companion object {
+        private const val TAG = "GameViewModel"
+    }
+
+    private val _state = MutableStateFlow(AstronautState.Initial)
+    val state: StateFlow<AstronautState> = _state.asStateFlow()
 
     init {
-        Log.d("BalloonViewModel", "ViewModel created")
+        Log.d(TAG, "ViewModel created")
         resetGame()
     }
 
@@ -32,27 +38,54 @@ class GameViewModel @Inject constructor(val speechDetector: SpeechDetector) : Vi
         when (intent) {
             is BalloonIntent.SpeakingChanged -> handleSpeakingState(intent.isSpeaking)
             is BalloonIntent.LevelReached -> handleLevelAchieved(intent.level)
-            BalloonIntent.ResetGame -> resetGame()
         }
     }
 
     // Запуск детектора звука
     fun startDetecting() {
-        if (!_state.value.isDetectingActive) {
-            Log.d("BalloonViewModel", "Starting sound detection")
+        Log.d(TAG, "Starting sound detection")
+        
+        // Сохраняем текущее состояние
+        val currentState = _state.value
+        
+        // Проверяем, не запущено ли уже детектирование
+        if (!currentState.isDetectingActive) {
+            Log.d(TAG, "Starting new detection")
+            
+            // Проверяем наличие разрешения
+            if (!speechDetector.hasPermission()) {
+                Log.e(TAG, "No permission to record audio")
+                return
+            }
+            
+            // Останавливаем предыдущее детектирование
+            stopDetecting()
+            
+            // Запускаем новое детектирование
             speechDetector.isUserSpeakingFlow
                 .onEach { isSpeaking ->
                     processIntent(BalloonIntent.SpeakingChanged(isSpeaking))
                 }
                 .launchIn(viewModelScope)
-            speechDetector.startRecording()
-            _state.update { it.copy(isDetectingActive = true) }
+                
+            // Добавляем небольшую задержку перед началом записи
+            viewModelScope.launch {
+                delay(100)
+                speechDetector.startRecording()
+            }
+            
+            // Восстанавливаем состояние, сохраняя прогресс
+            _state.update { 
+                currentState.copy(isDetectingActive = true)
+            }
+        } else {
+            Log.d(TAG, "Detection already active")
         }
     }
 
     // Остановка детектора звука
     fun stopDetecting() {
-        Log.d("BalloonViewModel", "Stopping sound detection")
+        Log.d(TAG, "Stopping sound detection")
         speechDetector.stopRecording()
         _state.update { it.copy(isDetectingActive = false) }
     }
@@ -90,16 +123,16 @@ class GameViewModel @Inject constructor(val speechDetector: SpeechDetector) : Vi
             currentState.copy(
                 currentLevel = level + 1,
                 baseY = BalloonConstants.LOTTIE_LEVEL_HEIGHTS[level],
-                xOffset = BalloonConstants.LOTTIE_STAIR_OFFSETS[level],
+                offsetX = BalloonConstants.LOTTIE_STAIR_OFFSETS[level],
                 collectedStars = newStars
             ).also {
-                Log.d("BalloonViewModel", "Level $level achieved. Stars: $newStars")
+                Log.d(TAG, "Level $level achieved. Stars: $newStars")
             }
         }
     }
 
     // Расчет новой позиции Y космонавта
-    private fun calculateNewPosition(state: BalloonState, isSpeaking: Boolean): Float {
+    private fun calculateNewPosition(state: AstronautState, isSpeaking: Boolean): Float {
         val targetY = if (isSpeaking) {
             // Рассчитываем целевую позицию от текущей базовой высоты
             state.balloonPosition - BalloonConstants.RISE_DISTANCE
@@ -121,21 +154,21 @@ class GameViewModel @Inject constructor(val speechDetector: SpeechDetector) : Vi
     }
 
     // Сброс игры к начальному состоянию
-    private fun resetGame() {
+    fun resetGame() {
         _state.update {
-            BalloonState.Initial.copy(
+            AstronautState.Initial.copy(
                 collectedStars = List(BalloonConstants.LEVEL_HEIGHTS.size) { false }
             )
         }
-        Log.d("BalloonViewModel", "Game state reset")
+        Log.d(TAG, "Game state reset")
     }
 
     private fun getCurrentLevelHeight(level: Int) =
-        BalloonConstants.LOTTIE_LEVEL_HEIGHTS.getOrElse(level) { BalloonState.Initial.baseY }
+        BalloonConstants.LOTTIE_LEVEL_HEIGHTS.getOrElse(level) { AstronautState.Initial.baseY }
 
     override fun onCleared() {
         super.onCleared()
         stopDetecting()
-        Log.d("BalloonViewModel", "ViewModel cleared")
+        Log.d(TAG, "ViewModel cleared")
     }
 }

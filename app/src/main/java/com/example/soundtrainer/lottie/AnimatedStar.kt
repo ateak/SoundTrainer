@@ -1,7 +1,6 @@
 package com.example.soundtrainer.lottie
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -26,25 +25,25 @@ fun AnimatedStar(
     isCollected: Boolean,
     onCollect: () -> Unit
 ) {
-    val compositionBeforeEating by rememberLottieComposition(
-        spec = LottieCompositionSpec.RawRes(R.raw.star_animation_before_eating))
+    // звезды, которые герой собирает
+    val mainStar by rememberLottieComposition(
+        spec = LottieCompositionSpec.RawRes(R.raw.star_animation_before))
 
-    // Анимация сбора
-    val compositionAfterEating by rememberLottieComposition(
-        spec = LottieCompositionSpec.RawRes(R.raw.star_animation_after_eating_3)
+    // звездочки, которые появляются после
+    val starsAfterCollecting by rememberLottieComposition(
+        spec = LottieCompositionSpec.RawRes(R.raw.star_animation_after)
     )
 
-    val composition = if (isCollected) compositionAfterEating else compositionBeforeEating
+    val starAnimation = if (isCollected) starsAfterCollecting else mainStar
 
     val progress by animateLottieCompositionAsState(
-        composition = composition,
-        iterations = 1,//if (isCollected) 1 else LottieConstants.IterateForever,
+        composition = starAnimation,
+        iterations = 1,
         speed = 0.8f,
         isPlaying = true
     )
 
-
-    // Обработка завершения анимации сбора
+    // Обработка завершения анимации сбора звезд
     var showCollectAnimation by remember { mutableStateOf(isCollected) }
     LaunchedEffect(isCollected) {
         if (isCollected) {
@@ -54,33 +53,15 @@ fun AnimatedStar(
         }
     }
 
-    // Отображение
+    // Отображение звезд
     if (!isCollected || showCollectAnimation) {
-    LottieAnimation(
-        composition = composition,
-        progress = { progress },
-        modifier = modifier
-            .background(Color.Transparent)
-
-            .zIndex(0.5f)
-            .size(120.dp)
-            .clickable(enabled = !isCollected) {
-                if (!isCollected) onCollect()
-            }
-    )
-        }
-
-    // Автоматический коллбэк при завершении анимации
-//    LaunchedEffect(isCollected) {
-//        if (isCollected && progress >= 0.99f) {
-//            onCollect()
-//        }
-//    }
-    // Обработка завершения анимации сбора
-//    LaunchedEffect(isCollected) {
-//        if (isCollected) {
-//            delay(1000) // Ждем завершения анимации
-//            onCollect() // Уведомляем о завершении
-//        }
-//    }
+        LottieAnimation(
+            composition = starAnimation,
+            progress = { progress },
+            modifier = modifier
+                .background(Color.Transparent)
+                .zIndex(0.5f)
+                .size(120.dp)
+        )
+    }
 }

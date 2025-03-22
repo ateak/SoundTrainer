@@ -8,22 +8,40 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
 import com.example.soundtrainer.presentation.GameScreen
-import com.example.soundtrainer.presentation.StartScreen
+import com.example.soundtrainer.presentation.StartsScreen
 
 @RequiresApi(Build.VERSION_CODES.VANILLA_ICE_CREAM)
 @Composable
 fun AppNavigation() {
-    val viewModel: GameViewModel = hiltViewModel()
-    var gameStarted by rememberSaveable { mutableStateOf(false) }
+    val navController = rememberNavController()
 
-    if (gameStarted) {
-        GameScreen(viewModel, onExit = { gameStarted = false })
-    } else {
-        StartScreen(
-            onStartGame = { gameStarted = true },
-            hiltViewModel()
-        )
+    NavHost(
+        navController = navController,
+        startDestination = "start"
+    ) {
+        composable("start") {
+            StartsScreen(
+                onNavigateToGame = {
+                    navController.navigate("game")
+                }
+            )
+        }
+
+        composable("game") {
+            val viewModel: GameViewModel = hiltViewModel()
+            GameScreen(
+                viewModel = viewModel,
+                onExit = {
+                    navController.navigate("start") {
+                        popUpTo("start") { inclusive = true }
+                    }
+                }
+            )
+        }
     }
 }
 

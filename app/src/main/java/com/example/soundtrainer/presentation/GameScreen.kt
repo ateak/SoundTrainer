@@ -28,6 +28,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -51,25 +52,45 @@ import com.example.soundtrainer.R
 import com.example.soundtrainer.lottie.AnimatedStar
 import com.example.soundtrainer.models.BalloonConstants
 import com.example.soundtrainer.models.BalloonIntent
-import com.example.soundtrainer.models.BalloonState
+import com.example.soundtrainer.models.AstronautState
 
+private const val TAG = "GameScreen"
 
 @RequiresApi(Build.VERSION_CODES.VANILLA_ICE_CREAM)
 @Composable
 fun GameScreen(viewModel: GameViewModel, onExit: () -> Unit) {
     val state by viewModel.state.collectAsState()
     val lifecycleOwner = LocalLifecycleOwner.current
-    Log.d("GameScreen", "Экран GameScreen создан")
+    // Используем remember для предотвращения множественных созданий
+    val isInitialized = remember { mutableStateOf(false) }
 
-    LaunchedEffect(Unit) {
-        Log.d("GameScreen", "Запуск детектирования через ViewModel.")
-        viewModel.startDetecting()
-    }
+    Log.d(TAG, "GameScreen created")
 
-    DisposableEffect(lifecycleOwner) {
+    // Отслеживаем жизненный цикл экрана
+    DisposableEffect(Unit) {
+        val observer = object : androidx.lifecycle.DefaultLifecycleObserver {
+            override fun onResume(owner: androidx.lifecycle.LifecycleOwner) {
+                Log.d(TAG, "ON_RESUME")
+                if (!isInitialized.value) {
+                    Log.d(TAG, "Инициализация детектирования")
+
+                    viewModel.startDetecting()
+                    isInitialized.value = true
+                }
+            }
+
+            override fun onPause(owner: androidx.lifecycle.LifecycleOwner) {
+                Log.d(TAG, "ON_PAUSE")
+                viewModel.stopDetecting()
+            }
+        }
+
+        lifecycleOwner.lifecycle.addObserver(observer)
+
         onDispose {
             Log.d("GameScreen", "Остановка детектирования. Выход с экрана.")
             viewModel.stopDetecting()
+            lifecycleOwner.lifecycle.removeObserver(observer)
         }
     }
 
@@ -101,7 +122,7 @@ fun GameScreen(viewModel: GameViewModel, onExit: () -> Unit) {
 }
 
 @Composable
-private fun BalloonAnimation(state: BalloonState, viewModel: GameViewModel) {
+private fun BalloonAnimation(state: AstronautState, viewModel: GameViewModel) {
     val animatedY by animateFloatAsState(
         targetValue = state.balloonPosition,
         animationSpec = tween(
@@ -113,7 +134,7 @@ private fun BalloonAnimation(state: BalloonState, viewModel: GameViewModel) {
     )
 
     val animatedX by animateFloatAsState(
-        targetValue = state.xOffset,
+        targetValue = state.offsetX,
         animationSpec = tween(
             durationMillis = 1500,
             easing = CubicBezierEasing(0.4f, 0.0f, 0.2f, 1.0f)
@@ -142,7 +163,7 @@ private fun BalloonAnimation(state: BalloonState, viewModel: GameViewModel) {
                 x = animatedX.dp,
                 y = animatedY.dp
             ),
-        )
+    )
 
     //Log.d("BalloonAnimation", "Animated Y: $animatedY")
 

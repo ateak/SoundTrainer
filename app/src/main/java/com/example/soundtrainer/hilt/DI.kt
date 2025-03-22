@@ -1,13 +1,12 @@
 package com.example.soundtrainer.hilt
 
-
-import android.util.Log
+import android.content.Context
 import com.example.soundtrainer.data.SpeechDetector
+import com.example.soundtrainer.data.SpeechDetectorImpl
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
-import dagger.hilt.android.components.ViewModelComponent
-import dagger.hilt.android.scopes.ViewModelScoped
+import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -20,18 +19,21 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun provideCoroutineScope(): CoroutineScope =
-        CoroutineScope(SupervisorJob() + Dispatchers.Main)
+    fun provideCoroutineScope(): CoroutineScope {
+        return CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    }
 }
 
 @Module
-@InstallIn(ViewModelComponent::class)
+@InstallIn(SingletonComponent::class)
 object SpeechModule {
 
     @Provides
-    @ViewModelScoped
-    fun provideSpeechDetector(scope: CoroutineScope): SpeechDetector {
-        Log.d("DI", "SpeechDetector создан")
-        return SpeechDetector(scope)
+    @Singleton
+    fun provideSpeechDetector(
+        @ApplicationContext context: Context,
+        coroutineScope: CoroutineScope
+    ): SpeechDetector {
+        return SpeechDetectorImpl(context, coroutineScope)
     }
 }
