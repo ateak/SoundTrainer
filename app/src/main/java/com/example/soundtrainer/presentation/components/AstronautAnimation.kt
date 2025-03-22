@@ -16,7 +16,7 @@ import com.airbnb.lottie.compose.LottieCompositionSpec
 import com.airbnb.lottie.compose.LottieConstants
 import com.airbnb.lottie.compose.animateLottieCompositionAsState
 import com.airbnb.lottie.compose.rememberLottieComposition
-import com.example.soundtrainer.GameViewModel
+import com.example.soundtrainer.presentation.viewModel.GameViewModel
 import com.example.soundtrainer.R
 import com.example.soundtrainer.models.GameConstants
 import com.example.soundtrainer.models.GameIntent

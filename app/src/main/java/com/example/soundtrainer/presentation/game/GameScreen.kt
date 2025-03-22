@@ -1,4 +1,4 @@
-package com.example.soundtrainer.presentation
+package com.example.soundtrainer.presentation.game
 
 import android.os.Build
 import android.util.Log
@@ -23,7 +23,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
-import com.example.soundtrainer.GameViewModel
+import com.example.soundtrainer.presentation.viewModel.GameViewModel
 import com.example.soundtrainer.R
 import com.example.soundtrainer.presentation.background.StarsBackground
 import com.example.soundtrainer.presentation.components.AstronautAnimation

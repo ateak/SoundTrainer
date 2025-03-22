@@ -1,4 +1,4 @@
-package com.example.soundtrainer
+package com.example.soundtrainer.presentation.viewModel
 
 import android.util.Log
 import androidx.lifecycle.ViewModel

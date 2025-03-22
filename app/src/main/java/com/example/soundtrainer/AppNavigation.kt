@@ -7,8 +7,9 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.example.soundtrainer.presentation.GameScreen
-import com.example.soundtrainer.presentation.StartsScreen
+import com.example.soundtrainer.presentation.game.GameScreen
+import com.example.soundtrainer.presentation.start.StartsScreen
+import com.example.soundtrainer.presentation.viewModel.GameViewModel
 
 @RequiresApi(Build.VERSION_CODES.VANILLA_ICE_CREAM)
 @Composable
