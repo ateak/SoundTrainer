@@ -8,7 +8,7 @@ import android.media.AudioRecord
 import android.media.MediaRecorder
 import android.util.Log
 import androidx.core.content.ContextCompat
-import com.example.soundtrainer.models.GameConstants
+import com.example.soundtrainer.utils.GameConstants
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -30,6 +30,7 @@ class SpeechDetectorImpl(
     private val _isUserSpeakingFlow = MutableStateFlow(false)
     override val isUserSpeakingFlow: StateFlow<Boolean> = _isUserSpeakingFlow.asStateFlow()
     private var job: Job? = null
+    private var currentAmplitudeThreshold = GameConstants.AMPLITUDE_THRESHOLD
 
     companion object {
         private const val TAG = "SpeechDetector"
@@ -42,7 +43,9 @@ class SpeechDetectorImpl(
         ) == PackageManager.PERMISSION_GRANTED
     }
 
-    override fun startRecording() {
+    override fun startRecording(amplitudeThreshold: Float) {
+        currentAmplitudeThreshold = amplitudeThreshold
+        
         if (isRecording) {
             Log.d(TAG, "Already recording")
             return
@@ -74,7 +77,7 @@ class SpeechDetectorImpl(
 
             audioRecord?.startRecording()
             isRecording = true
-            Log.d(TAG, "Recording started successfully")
+            Log.d(TAG, "Recording started successfully with threshold: $currentAmplitudeThreshold")
 
             job = coroutineScope.launch(Dispatchers.IO) {
                 delay(200)
@@ -101,8 +104,8 @@ class SpeechDetectorImpl(
                                     zeroAmplitudeCount = 0
                                 }
                                 
-                                _isUserSpeakingFlow.value = amplitude > GameConstants.AMPLITUDE_THRESHOLD
-                                Log.d(TAG, "Amplitude: $amplitude")
+                                _isUserSpeakingFlow.value = amplitude > currentAmplitudeThreshold
+                                Log.d(TAG, "Amplitude: $amplitude, Threshold: $currentAmplitudeThreshold")
                             }
                         }
                         delay(GameConstants.SOUND_CHECK_INTERVAL)
@@ -140,10 +143,11 @@ class SpeechDetectorImpl(
 
     override fun restartRecording() {
         Log.d(TAG, "Restarting recording...")
+        val threshold = currentAmplitudeThreshold
         stopRecording()
         coroutineScope.launch {
             delay(300) // Увеличиваем задержку для стабильности
-            startRecording()
+            startRecording(threshold)
         }
     }
 

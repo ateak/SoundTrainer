@@ -9,8 +9,12 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -36,10 +40,10 @@ import com.airbnb.lottie.compose.LottieCompositionSpec
 import com.airbnb.lottie.compose.LottieConstants
 import com.airbnb.lottie.compose.animateLottieCompositionAsState
 import com.airbnb.lottie.compose.rememberLottieComposition
-import com.example.soundtrainer.presentation.viewModel.GameViewModel
 import com.example.soundtrainer.R
 import com.example.soundtrainer.presentation.background.StarsFallingBackground
 import com.example.soundtrainer.presentation.components.PermissionDialog
+import com.example.soundtrainer.presentation.viewModel.GameViewModel
 import com.example.soundtrainer.utils.hasAudioPermission
 import com.example.soundtrainer.utils.rememberAudioPermissionState
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
@@ -50,6 +54,7 @@ private const val TAG = "StartsScreen"
 @Composable
 fun StartsScreen(
     onNavigateToGame: () -> Unit,
+    onNavigateToSettings: () -> Unit,
     viewModel: GameViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
@@ -142,6 +147,20 @@ fun StartsScreen(
         contentAlignment = Alignment.Center
     ) {
         StarsFallingBackground()
+
+        // Добавляем иконку настроек
+        IconButton(
+            onClick = onNavigateToSettings,
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .padding(16.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.Settings,
+                contentDescription = "Настройки",
+                tint = MaterialTheme.colorScheme.primary
+            )
+        }
 
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,

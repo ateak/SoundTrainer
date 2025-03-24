@@ -1,5 +1,4 @@
-package com.example.soundtrainer.models
-
+package com.example.soundtrainer.utils
 
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp

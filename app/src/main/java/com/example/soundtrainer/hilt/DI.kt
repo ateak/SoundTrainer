@@ -1,6 +1,7 @@
 package com.example.soundtrainer.hilt
 
 import android.content.Context
+import com.example.soundtrainer.data.GameSettings
 import com.example.soundtrainer.data.SpeechDetector
 import com.example.soundtrainer.data.SpeechDetectorImpl
 import dagger.Module
@@ -35,5 +36,18 @@ object SpeechModule {
         coroutineScope: CoroutineScope
     ): SpeechDetector {
         return SpeechDetectorImpl(context, coroutineScope)
+    }
+}
+
+@Module
+@InstallIn(SingletonComponent::class)
+object SettingsModule {
+
+    @Provides
+    @Singleton
+    fun provideGameSettings(
+        @ApplicationContext context: Context
+    ): GameSettings {
+        return GameSettings(context)
     }
 }

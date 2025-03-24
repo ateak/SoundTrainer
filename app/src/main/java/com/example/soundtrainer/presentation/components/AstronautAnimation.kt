@@ -16,19 +16,23 @@ import com.airbnb.lottie.compose.LottieCompositionSpec
 import com.airbnb.lottie.compose.LottieConstants
 import com.airbnb.lottie.compose.animateLottieCompositionAsState
 import com.airbnb.lottie.compose.rememberLottieComposition
-import com.example.soundtrainer.presentation.viewModel.GameViewModel
 import com.example.soundtrainer.R
-import com.example.soundtrainer.models.GameConstants
+import com.example.soundtrainer.data.GameSettings
 import com.example.soundtrainer.models.GameIntent
 import com.example.soundtrainer.models.GameState
+import com.example.soundtrainer.presentation.viewModel.GameViewModel
 
 @Composable
 fun AstronautAnimation(state: GameState, viewModel: GameViewModel) {
+    val difficulty = state.difficulty
+
     val animatedY by animateFloatAsState(
         targetValue = state.currentPosition,
         animationSpec = tween(
-            durationMillis = if (state.isSpeaking) (GameConstants.RISE_DISTANCE / GameConstants.RISE_SPEED * 1000).toInt()
-            else (GameConstants.RISE_DISTANCE / GameConstants.FALL_SPEED * 1000).toInt(),
+            durationMillis = calculateDuration(
+                isSpeaking = state.isSpeaking,
+                difficulty = difficulty
+            ),
             easing = LinearEasing
         ),
         label = "AstronautAnimation"
@@ -65,10 +69,18 @@ fun AstronautAnimation(state: GameState, viewModel: GameViewModel) {
     )
 
     LaunchedEffect(animatedY) {
-        if (state.currentLevel < GameConstants.REACHED_LEVEL_HEIGHTS.size &&
-            animatedY <= GameConstants.REACHED_LEVEL_HEIGHTS[state.currentLevel]
+        val reachedHeights = difficulty.reachedLevelHeights
+        if (state.currentLevel < reachedHeights.size && animatedY <= reachedHeights[state.currentLevel]
         ) {
             viewModel.processIntent(GameIntent.LevelReached(state.currentLevel))
         }
+    }
+}
+
+private fun calculateDuration(isSpeaking: Boolean, difficulty: GameSettings.Difficulty): Int {
+    return if (isSpeaking) {
+        (difficulty.riseDistance / difficulty.riseSpeed * 1000).toInt()
+    } else {
+        (difficulty.riseDistance / difficulty.fallSpeed * 1000).toInt()
     }
 }

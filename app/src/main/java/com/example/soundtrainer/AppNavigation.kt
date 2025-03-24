@@ -8,6 +8,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.soundtrainer.presentation.game.GameScreen
+import com.example.soundtrainer.presentation.settings.SettingsScreen
 import com.example.soundtrainer.presentation.start.StartsScreen
 import com.example.soundtrainer.presentation.viewModel.GameViewModel
 
@@ -24,6 +25,9 @@ fun AppNavigation() {
             StartsScreen(
                 onNavigateToGame = {
                     navController.navigate("game")
+                },
+                onNavigateToSettings = {
+                    navController.navigate("settings")
                 }
             )
         }
@@ -36,6 +40,17 @@ fun AppNavigation() {
                     navController.navigate("start") {
                         popUpTo("start") { inclusive = true }
                     }
+                },
+                onNavigateToSettings = {
+                    navController.navigate("settings")
+                },
+            )
+        }
+
+        composable("settings") {
+            SettingsScreen(
+                onBack = {
+                    navController.popBackStack()
                 }
             )
         }

@@ -6,7 +6,7 @@ interface SpeechDetector {
 
     val isUserSpeakingFlow: StateFlow<Boolean>
 
-    fun startRecording()
+    fun startRecording(amplitudeThreshold: Float)
     fun stopRecording()
     fun restartRecording()
     fun isRecording(): Boolean

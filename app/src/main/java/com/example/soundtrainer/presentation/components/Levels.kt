@@ -20,7 +20,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
-import com.example.soundtrainer.models.GameConstants
+import com.example.soundtrainer.utils.GameConstants
 
 @RequiresApi(Build.VERSION_CODES.VANILLA_ICE_CREAM)
 @Composable
@@ -28,6 +28,7 @@ fun Levels(
     modifier: Modifier = Modifier,
     collectedStars: List<Boolean>,
     onStarCollected: (Int) -> Unit,
+    levelHeights: List<Float>,
 ) {
     val density = LocalDensity.current
     val cornerRadius = GameConstants.CORNER_RADIUS
@@ -50,8 +51,7 @@ fun Levels(
 
             var currentX = size.width - stairWidth - paddingFromAstronaut
 
-            GameConstants.LEVEL_HEIGHTS.forEachIndexed { index, height ->
-
+            levelHeights.forEachIndexed { index, height ->
                 val colors =
                     GameConstants.MOUNTAIN_COLORS[index % GameConstants.MOUNTAIN_COLORS.size]
 
@@ -78,7 +78,7 @@ fun Levels(
                 currentX -= stairWidth
             }
         }
-        GameConstants.LEVEL_HEIGHTS.forEachIndexed { index, _ ->
+        levelHeights.forEachIndexed { index, _ ->
             starPositions[index]?.let { position ->
                 StarItem(
                     position = position,
