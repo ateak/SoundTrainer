@@ -29,6 +29,7 @@ import com.example.soundtrainer.R
 import com.example.soundtrainer.presentation.background.StarsBackground
 import com.example.soundtrainer.presentation.components.AstronautAnimation
 import com.example.soundtrainer.presentation.components.Levels
+import com.example.soundtrainer.presentation.components.VictoryAnimation
 import com.example.soundtrainer.presentation.viewModel.GameViewModel
 
 private const val TAG = "GameScreen"
@@ -86,6 +87,7 @@ fun GameScreen(
             levelHeights = state.difficulty.levelHeights
         )
         AstronautAnimation(state, viewModel)
+        VictoryAnimation(state)
 
         Row(
             modifier = Modifier
