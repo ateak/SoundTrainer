@@ -39,24 +39,21 @@ class GameViewModel @Inject constructor(
 
     init {
         Log.d(TAG, "ViewModel created")
-        //resetGame()
         viewModelScope.launch {
             gameSettings.difficultyFlow.collect { newDifficulty ->
-                updateDifficulty(newDifficulty)
+                processIntent(GameIntent.DifficultyChanged(newDifficulty))
             }
         }
     }
 
-    // Обработка пользовательских интентов
     fun processIntent(intent: GameIntent) {
         when (intent) {
             is GameIntent.SpeakingChanged -> handleSpeakingState(intent.isSpeaking)
             is GameIntent.LevelReached -> handleLevelAchieved(intent.level)
-            is GameIntent.DifficultyChanged -> handleDifficultyChanged()
+            is GameIntent.DifficultyChanged -> handleDifficultyChanged(intent.difficulty)
         }
     }
 
-    // Запуск детектора звука
     fun startDetecting() {
         Log.d(TAG, "Starting sound detection")
 
@@ -73,7 +70,6 @@ class GameViewModel @Inject constructor(
             // Останавливаем предыдущее детектирование
             stopDetecting()
 
-            // Запускаем новое детектирование
             speechDetector.isUserSpeakingFlow
                 .onEach { isSpeaking ->
                     processIntent(GameIntent.SpeakingChanged(isSpeaking))
@@ -139,19 +135,88 @@ class GameViewModel @Inject constructor(
         }
     }
 
-    private fun handleDifficultyChanged() {
-        _state.update { currentState ->
-            currentState.copy(difficulty = gameSettings.difficulty)
-        }
+    private fun handleDifficultyChanged(difficulty: GameSettings.Difficulty) {
+        updateDifficulty(difficulty)
     }
 
     private fun updateDifficulty(newDifficulty: GameSettings.Difficulty) {
         _state.update { currentState ->
+            // Получаем текущий уровень
+            val currentLevel = currentState.currentLevel
+
+            // Проверяем, достиг ли космонавт последнего уровня
+            val maxLevel = currentState.difficulty.reachedLevelHeights.size
+            if (currentLevel >= maxLevel) {
+                // Если космонавт на последнем уровне, сбрасываем игру при смене сложности
+                Log.d(
+                    TAG,
+                    "Astronaut reached max level (${maxLevel - 1}), resetting game with new difficulty"
+                )
+                return@update GameState.Initial.copy(
+                    collectedStars = List(GameConstants.LEVEL_HEIGHTS.size) { false },
+                    difficulty = newDifficulty,
+                    currentPosition = GameConstants.BASE_Y,
+                    baseY = GameConstants.BASE_Y,
+                    currentLevel = 0,
+                )
+            }
+
+            // Если игра только начинается (уровень 0), используем BASE_Y для позиционирования
+            if (currentLevel == 0) {
+                Log.d(TAG, "Game starting, setting astronaut to BASE_Y")
+                return@update currentState.copy(
+                    difficulty = newDifficulty,
+                    baseY = GameConstants.BASE_Y,
+                    currentPosition = GameConstants.BASE_Y
+                )
+            }
+
+            // Важная коррекция: действительный уровень, для которого мы берем высоты -
+            // это currentLevel - 1, так как currentLevel указывает на следующий блок, к которому стремится космонавт
+            val actualLevel = currentLevel - 1
+
+            // Для последующих уровней сохраняем прогресс
+            // Получаем целевую высоту уровня для новой сложности
+            val newBaseY = if (actualLevel < 0) {
+                GameConstants.BASE_Y
+            } else {
+                newDifficulty.reachedLevelHeights[actualLevel]
+            }
+
+            // Определяем верхнюю границу текущего уровня (к которой стремится космонавт)
+            val targetLevel = if (currentLevel < newDifficulty.reachedLevelHeights.size) {
+                newDifficulty.reachedLevelHeights[currentLevel]
+            } else {
+                newDifficulty.reachedLevelHeights.lastOrNull() ?: 0f
+            }
+
+            // Вычисляем относительное положение космонавта между точками для текущей сложности
+            val oldBaseY = currentState.baseY
+            val oldTargetY = getCurrentLevelHeight(currentLevel)
+
+            // Вычисляем относительное положение космонавта (0.0 - уже достиг цели, 1.0 - только начал двигаться)
+            val relativePosition = if (oldBaseY != oldTargetY) {
+                (currentState.currentPosition - oldTargetY) / (oldBaseY - oldTargetY)
+            } else {
+                0f // Предотвращение деления на ноль
+            }.coerceIn(0f, 1f)
+
+            // Вычисляем новую позицию космонавта, сохраняя его относительное положение
+            val newPosition = targetLevel + relativePosition * (newBaseY - targetLevel)
+
+            Log.d(
+                TAG, "Updating difficulty: " +
+                        "Level=$currentLevel, ActualLevel=$actualLevel, " +
+                        "oldPos=${currentState.currentPosition}, " +
+                        "newPos=$newPosition, " +
+                        "relativePos=$relativePosition, " +
+                        "newBaseY=$newBaseY, targetLevel=$targetLevel"
+            )
+
             currentState.copy(
                 difficulty = newDifficulty,
-                baseY = newDifficulty.reachedLevelHeights.getOrElse(currentState.currentLevel) {
-                    newDifficulty.reachedLevelHeights.lastOrNull() ?: 0f
-                },
+                baseY = newBaseY,
+                currentPosition = newPosition
             )
         }
     }
@@ -181,6 +246,7 @@ class GameViewModel @Inject constructor(
                 collectedStars = List(GameConstants.LEVEL_HEIGHTS.size) { false },
                 difficulty = _state.value.difficulty,
                 currentPosition = GameConstants.BASE_Y,
+                baseY = GameConstants.BASE_Y,
                 currentLevel = 0,
             )
         }
