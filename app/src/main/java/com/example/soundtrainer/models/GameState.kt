@@ -12,6 +12,9 @@ data class GameState(
     val isDetectingActive: Boolean,
     val collectedStars: List<Boolean>,
     val difficulty: GameSettings.Difficulty,
+    val isGameComplete: Boolean, // Флаг, указывающий, что игра завершена (все уровни пройдены)
+    val isRestartButtonVisible: Boolean, // Флаг видимости кнопки рестарта
+    val isResetting: Boolean = false, // Флаг, указывающий, что игра находится в процессе рестарта (для пропуска анимации)
 ) {
     companion object {
         val Initial = GameState(
@@ -22,7 +25,10 @@ data class GameState(
             isSpeaking = false,
             isDetectingActive = false,
             collectedStars = emptyList(),
-            difficulty = GameSettings.Difficulty.EASY
+            difficulty = GameSettings.Difficulty.EASY,
+            isGameComplete = false,
+            isRestartButtonVisible = false,
+            isResetting = false
         )
     }
 }

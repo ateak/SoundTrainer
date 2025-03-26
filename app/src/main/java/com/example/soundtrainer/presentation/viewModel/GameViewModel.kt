@@ -124,13 +124,37 @@ class GameViewModel @Inject constructor(
             if (level >= _state.value.difficulty.reachedLevelHeights.size) return@update currentState
 
             val newStars = updateStars(currentState.collectedStars, level)
+            
+            // Проверяем, это последний уровень?
+            val isLastLevel = level == _state.value.difficulty.reachedLevelHeights.size - 1
+            
+            // На последнем уровне по-прежнему увеличиваем currentLevel, чтобы победная анимация активировалась,
+            // но базовую позицию не меняем
+            val newBaseY = if (isLastLevel) {
+                // На последнем уровне фиксируем позицию на текущей высоте
+                _state.value.difficulty.reachedLevelHeights[level]
+            } else {
+                _state.value.difficulty.reachedLevelHeights[level]
+            }
+            
             currentState.copy(
+                // Всегда увеличиваем currentLevel для корректной работы победной анимации
                 currentLevel = level + 1,
-                baseY = _state.value.difficulty.reachedLevelHeights[level],
+                baseY = newBaseY,
+                // На последнем уровне фиксируем текущую позицию
+                currentPosition = if (isLastLevel) _state.value.difficulty.reachedLevelHeights[level] else currentState.currentPosition,
                 offsetX = GameConstants.STAIR_OFFSETS[level],
-                collectedStars = newStars
+                collectedStars = newStars,
+                isGameComplete = isLastLevel,
+                isRestartButtonVisible = isLastLevel
             ).also {
-                Log.d(TAG, "Level $level achieved. Stars: $newStars")
+                Log.d(TAG, "Level $level achieved. Stars: $newStars, isLastLevel: $isLastLevel")
+
+                // Если это последний уровень, останавливаем детектирование звука немедленно
+                if (isLastLevel) {
+                    stopDetecting() // Немедленная остановка
+                    Log.d(TAG, "Last level reached - sound detection stopped immediately")
+                }
             }
         }
     }
@@ -141,10 +165,7 @@ class GameViewModel @Inject constructor(
 
     private fun updateDifficulty(newDifficulty: GameSettings.Difficulty) {
         _state.update { currentState ->
-            // Получаем текущий уровень
             val currentLevel = currentState.currentLevel
-
-            // Проверяем, достиг ли космонавт последнего уровня
             val maxLevel = currentState.difficulty.reachedLevelHeights.size
             if (currentLevel >= maxLevel) {
                 // Если космонавт на последнем уровне, сбрасываем игру при смене сложности
@@ -222,6 +243,18 @@ class GameViewModel @Inject constructor(
     }
 
     private fun calculateNewPosition(state: GameState, isSpeaking: Boolean): Float {
+        // Если игра завершена, космонавт должен оставаться на месте
+        if (state.isGameComplete) {
+            Log.d(TAG, "Game is complete, astronaut should stay at position: ${state.currentPosition}")
+            return state.currentPosition
+        }
+        
+        // Если текущий уровень - последний, также фиксируем позицию
+        if (state.currentLevel >= _state.value.difficulty.reachedLevelHeights.size) {
+            Log.d(TAG, "At max level (${state.currentLevel}), keeping position: ${state.currentPosition}")
+            return state.currentPosition
+        }
+        
         val targetY = if (isSpeaking) {
             // Используем параметры подъема из настроек
             state.currentPosition - _state.value.difficulty.riseDistance
@@ -230,6 +263,7 @@ class GameViewModel @Inject constructor(
             state.currentPosition + _state.value.difficulty.fallSpeed
         }
             .coerceIn(getCurrentLevelHeight(state.currentLevel)..state.baseY)
+        
         return targetY
     }
 
@@ -241,20 +275,67 @@ class GameViewModel @Inject constructor(
     }
 
     fun resetGame() {
-        _state.update {
-            GameState.Initial.copy(
+        Log.d(TAG, "Game reset requested, using same approach as updateDifficulty")
+        // Гарантированно останавливаем детектирование звука
+        stopDetecting()
+
+        // Сначала устанавливаем флаг isResetting в true для мгновенного перемещения без анимации
+        _state.update { currentState ->
+            currentState.copy(isResetting = true)
+        }
+
+        // Применяем сброс с флагом isResetting
+        _state.update { currentState ->
+            Log.d(TAG, "Resetting game with immediate position change (isResetting=true)")
+
+            return@update GameState.Initial.copy(
                 collectedStars = List(GameConstants.LEVEL_HEIGHTS.size) { false },
-                difficulty = _state.value.difficulty,
+                difficulty = currentState.difficulty,
                 currentPosition = GameConstants.BASE_Y,
                 baseY = GameConstants.BASE_Y,
                 currentLevel = 0,
+                isGameComplete = false,
+                isRestartButtonVisible = false,
+                isSpeaking = false,
+                isDetectingActive = false,
+                isResetting = true // Сохраняем флаг для мгновенного перемещения
             )
         }
-        Log.d(TAG, "Game state reset")
+
+        Log.d(TAG, "Game fully reset, starting position: ${_state.value.currentPosition}, offsetX: ${_state.value.offsetX}")
+
+        // После более длительной задержки запускаем детектирование звука и выключаем флаг isResetting
+        viewModelScope.launch {
+            delay(1000) // Увеличиваем задержку, чтобы предыдущее детектирование гарантированно завершилось
+            Log.d(TAG, "Restarting sound detection after game reset")
+            
+            // Убираем флаг isResetting и убеждаемся, что космонавт находится в правильной позиции
+            _state.update { currentState ->
+                currentState.copy(
+                    currentPosition = GameConstants.BASE_Y,
+                    baseY = GameConstants.BASE_Y,
+                    isResetting = false // Выключаем флаг после того, как перемещение завершено
+                )
+            }
+            
+            startDetecting()
+        }
     }
 
-    private fun getCurrentLevelHeight(level: Int) =
-        _state.value.difficulty.reachedLevelHeights.getOrElse(level) { GameState.Initial.baseY }
+    fun hideRestartButton() {
+        _state.update { currentState ->
+            currentState.copy(isRestartButtonVisible = false)
+        }
+    }
+
+    private fun getCurrentLevelHeight(level: Int): Float {
+        // Если уровень больше или равен размеру массива, вернем высоту последнего уровня
+        return if (level >= _state.value.difficulty.reachedLevelHeights.size) {
+            _state.value.difficulty.reachedLevelHeights.lastOrNull() ?: GameState.Initial.baseY
+        } else {
+            _state.value.difficulty.reachedLevelHeights.getOrElse(level) { GameState.Initial.baseY }
+        }
+    }
 
     override fun onCleared() {
         super.onCleared()

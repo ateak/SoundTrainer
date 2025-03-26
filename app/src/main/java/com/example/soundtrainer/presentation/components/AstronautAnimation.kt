@@ -29,7 +29,7 @@ fun AstronautAnimation(state: GameState, viewModel: GameViewModel) {
     val animatedY by animateFloatAsState(
         targetValue = state.currentPosition,
         animationSpec = tween(
-            durationMillis = calculateDuration(
+            durationMillis = if (state.isResetting) 0 else calculateDuration(
                 isSpeaking = state.isSpeaking,
                 difficulty = difficulty
             ),
@@ -41,7 +41,7 @@ fun AstronautAnimation(state: GameState, viewModel: GameViewModel) {
     val animatedX by animateFloatAsState(
         targetValue = state.offsetX,
         animationSpec = tween(
-            durationMillis = 1500,
+            durationMillis = if (state.isResetting) 0 else 1500,
             easing = CubicBezierEasing(0.4f, 0.0f, 0.2f, 1.0f)
         ),
         label = "AstronautAnimation"
@@ -69,6 +69,8 @@ fun AstronautAnimation(state: GameState, viewModel: GameViewModel) {
     )
 
     LaunchedEffect(animatedY) {
+        if (state.isResetting) return@LaunchedEffect
+        
         val reachedHeights = difficulty.reachedLevelHeights
         if (state.currentLevel < reachedHeights.size && animatedY <= reachedHeights[state.currentLevel]
         ) {

@@ -46,18 +46,18 @@ fun VictoryAnimation(state: GameState) {
     )
 
     val alphaValue by animateFloatAsState(
-        targetValue = if (state.currentLevel == GameConstants.LEVEL_HEIGHTS.size) 1f else 0f,
+        targetValue = if (state.isGameComplete) 1f else 0f,
         animationSpec = tween(durationMillis = 1000)
     )
 
-    LaunchedEffect(state.currentLevel) {
-        if (state.currentLevel == GameConstants.LEVEL_HEIGHTS.size) {
+    LaunchedEffect(state.isGameComplete) {
+        if (state.isGameComplete) {
             isPlaying = true
         }
     }
 
     AnimatedVisibility(
-        visible = state.currentLevel == GameConstants.LEVEL_HEIGHTS.size,
+        visible = state.isGameComplete,
         enter = fadeIn() + expandIn(expandFrom = Alignment.Center),
         exit = fadeOut() + shrinkOut()
     ) {

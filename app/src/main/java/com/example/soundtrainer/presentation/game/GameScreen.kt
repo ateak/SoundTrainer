@@ -29,6 +29,7 @@ import com.example.soundtrainer.R
 import com.example.soundtrainer.presentation.background.StarsBackground
 import com.example.soundtrainer.presentation.components.AstronautAnimation
 import com.example.soundtrainer.presentation.components.Levels
+import com.example.soundtrainer.presentation.components.RestartButton
 import com.example.soundtrainer.presentation.components.VictoryAnimation
 import com.example.soundtrainer.presentation.viewModel.GameViewModel
 
@@ -88,6 +89,12 @@ fun GameScreen(
         )
         AstronautAnimation(state, viewModel)
         VictoryAnimation(state)
+
+        RestartButton(
+            state = state,
+            onRestart = { viewModel.resetGame() },
+            onHideButton = { viewModel.hideRestartButton() }
+        )
 
         Row(
             modifier = Modifier
