@@ -1,6 +1,7 @@
 package com.example.soundtrainer.models
 
 import com.example.soundtrainer.data.GameSettings
+import com.example.soundtrainer.utils.AdaptiveGameConstants.getBaseY
 import com.example.soundtrainer.utils.GameConstants
 
 data class GameState(
@@ -18,10 +19,10 @@ data class GameState(
 ) {
     companion object {
         val Initial = GameState(
-            currentPosition = GameConstants.BASE_Y,
+            currentPosition = getBaseY(),
             currentLevel = 0,
             offsetX = 0f,
-            baseY = GameConstants.BASE_Y,
+            baseY = getBaseY(),
             isSpeaking = false,
             isDetectingActive = false,
             collectedStars = emptyList(),

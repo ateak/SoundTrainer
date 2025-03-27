@@ -7,6 +7,7 @@ import com.example.soundtrainer.data.GameSettings
 import com.example.soundtrainer.data.SpeechDetector
 import com.example.soundtrainer.models.GameIntent
 import com.example.soundtrainer.models.GameState
+import com.example.soundtrainer.utils.AdaptiveGameConstants.getBaseY
 import com.example.soundtrainer.utils.GameConstants
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
@@ -174,10 +175,10 @@ class GameViewModel @Inject constructor(
                     "Astronaut reached max level (${maxLevel - 1}), resetting game with new difficulty"
                 )
                 return@update GameState.Initial.copy(
-                    collectedStars = List(GameConstants.LEVEL_HEIGHTS.size) { false },
+                    collectedStars = List(3) { false },
                     difficulty = newDifficulty,
-                    currentPosition = GameConstants.BASE_Y,
-                    baseY = GameConstants.BASE_Y,
+                    currentPosition = getBaseY(),
+                    baseY = getBaseY(),
                     currentLevel = 0,
                 )
             }
@@ -187,8 +188,8 @@ class GameViewModel @Inject constructor(
                 Log.d(TAG, "Game starting, setting astronaut to BASE_Y")
                 return@update currentState.copy(
                     difficulty = newDifficulty,
-                    baseY = GameConstants.BASE_Y,
-                    currentPosition = GameConstants.BASE_Y
+                    baseY = getBaseY(),
+                    currentPosition = getBaseY()
                 )
             }
 
@@ -199,7 +200,7 @@ class GameViewModel @Inject constructor(
             // Для последующих уровней сохраняем прогресс
             // Получаем целевую высоту уровня для новой сложности
             val newBaseY = if (actualLevel < 0) {
-                GameConstants.BASE_Y
+                getBaseY()
             } else {
                 newDifficulty.reachedLevelHeights[actualLevel]
             }
@@ -289,10 +290,10 @@ class GameViewModel @Inject constructor(
             Log.d(TAG, "Resetting game with immediate position change (isResetting=true)")
 
             return@update GameState.Initial.copy(
-                collectedStars = List(GameConstants.LEVEL_HEIGHTS.size) { false },
+                collectedStars = List(3) { false },
                 difficulty = currentState.difficulty,
-                currentPosition = GameConstants.BASE_Y,
-                baseY = GameConstants.BASE_Y,
+                currentPosition = getBaseY(),
+                baseY = getBaseY(),
                 currentLevel = 0,
                 isGameComplete = false,
                 isRestartButtonVisible = false,
@@ -312,8 +313,8 @@ class GameViewModel @Inject constructor(
             // Убираем флаг isResetting и убеждаемся, что космонавт находится в правильной позиции
             _state.update { currentState ->
                 currentState.copy(
-                    currentPosition = GameConstants.BASE_Y,
-                    baseY = GameConstants.BASE_Y,
+                    currentPosition = getBaseY(),
+                    baseY = getBaseY(),
                     isResetting = false // Выключаем флаг после того, как перемещение завершено
                 )
             }

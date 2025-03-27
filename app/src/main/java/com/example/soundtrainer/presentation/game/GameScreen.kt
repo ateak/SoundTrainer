@@ -85,7 +85,7 @@ fun GameScreen(
             onStarCollected = { level ->
                 viewModel.collectStar(level)
             },
-            levelHeights = state.difficulty.levelHeights
+            difficulty = state.difficulty
         )
         AstronautAnimation(state, viewModel)
         VictoryAnimation(state)

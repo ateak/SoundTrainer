@@ -6,6 +6,11 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.annotation.RequiresApi
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.ui.Modifier
+import com.example.soundtrainer.ui.theme.SoundTrainerTheme
+import com.example.soundtrainer.utils.InitializeScreenInfo
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
@@ -16,7 +21,15 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            AppNavigation()
+            SoundTrainerTheme {
+                // Инициализируем информацию о размере экрана
+                // перед созданием основного навигационного графа
+                InitializeScreenInfo()
+                
+                Box(modifier = Modifier.fillMaxSize()) {
+                    AppNavigation()
+                }
+            }
         }
     }
 }
