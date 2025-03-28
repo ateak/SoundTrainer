@@ -22,7 +22,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import com.example.soundtrainer.data.GameSettings
-import com.example.soundtrainer.utils.AdaptiveGameConstants.getLevelHeights
+import com.example.soundtrainer.utils.AdaptiveGameConstants
 import com.example.soundtrainer.utils.GameConstants
 
 private const val TAG = "Levels"
@@ -48,28 +48,25 @@ fun Levels(
         ), label = ""
     )
 
-    Box(modifier = modifier.fillMaxSize()) {
-        val levelHeights = difficulty.getLevelHeights()
+    Box(modifier = modifier) {
+        val levelHeights = with(AdaptiveGameConstants) { difficulty.getLevelHeights() }
         println("Katya levelHeights $levelHeights")
 
         Canvas(modifier = Modifier.fillMaxSize()) {
-            val stairWidth = size.width * GameConstants.STAIR_WIDTH_RATIO
-            val paddingFromAstronaut = GameConstants.PADDING_FROM_ASTRONAUT * 2
-            val starRadius = 110.dp.toPx()
+            val stairWidth = AdaptiveGameConstants.getStairWidth()
+            val paddingFromAstronaut = AdaptiveGameConstants.getPaddingFromAstronaut()
+            val starRadius = AdaptiveGameConstants.getStarRadius()
 
             var currentX = size.width - stairWidth - paddingFromAstronaut
 
-            // Используем высоты из объекта difficulty
-            //val levelHeights = difficulty.levelHeights
-
             levelHeights.forEachIndexed { index, height ->
-                val colors = GameConstants.MOUNTAIN_COLORS[index % GameConstants.MOUNTAIN_COLORS.size]
+                val colors =
+                    GameConstants.MOUNTAIN_COLORS[index % GameConstants.MOUNTAIN_COLORS.size]
 
-                // Отрисовка блока с градиентом, точно как в оригинале
                 drawRoundRect(
                     Brush.linearGradient(
                         colors = colors,
-                        start = Offset(0f, (size.height - height) * progress),
+                        start = Offset(0f, size.height - height * progress),
                         end = Offset(0f, size.height)
                     ),
                     size = Size(stairWidth, height),
@@ -80,10 +77,31 @@ fun Levels(
                     cornerRadius = CornerRadius(cornerRadius.toPx(), cornerRadius.toPx())
                 )
 
-                // Сохраняем позицию для звезды, в том же формате как оригинал
+                // Координаты блока
+                val blockLeft = currentX + paddingFromAstronaut
+                val blockTop = size.height - height
+                val blockRight = blockLeft + stairWidth
+                
+                // Точный центр блока по горизонтали
+                val blockCenterX = blockLeft + (stairWidth / 2)
+                
+                // Динамический отступ над блоком в зависимости от размера экрана
+                val screenWidth = AdaptiveGameConstants.getScreenWidth()
+                val heightAboveBlock = with(density) { 
+                    when {
+                        screenWidth < 600 -> 40.dp.toPx()  // Телефоны
+                        screenWidth < 840 -> 60.dp.toPx()  // Маленькие планшеты
+                        else -> 80.dp.toPx()               // Большие планшеты
+                    }
+                }
+                
+                // Отладочный вывод для позиций блоков и звезд
+                Log.d(TAG, "Block $index: centerX=$blockCenterX, top=$blockTop, starY=${blockTop - heightAboveBlock}")
+                
+                // Сохраняем позицию для звезды - точно в центре блока по горизонтали и выше блока
                 starPositions[index] = Offset(
-                    x = currentX + paddingFromAstronaut - stairWidth / 3,
-                    y = size.height - height - starRadius
+                    x = blockCenterX,
+                    y = blockTop - heightAboveBlock
                 )
 
                 // Логируем позиции блоков
@@ -93,8 +111,6 @@ fun Levels(
                 currentX -= stairWidth
             }
         }
-        
-        // Отрисовываем звезды на сохраненных позициях
         levelHeights.forEachIndexed { index, _ ->
             starPositions[index]?.let { position ->
                 StarItem(

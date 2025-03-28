@@ -27,7 +27,7 @@ import com.airbnb.lottie.compose.animateLottieCompositionAsState
 import com.airbnb.lottie.compose.rememberLottieComposition
 import com.example.soundtrainer.R
 import com.example.soundtrainer.models.GameState
-import com.example.soundtrainer.utils.GameConstants
+import com.example.soundtrainer.utils.AdaptiveGameConstants
 
 @Composable
 fun VictoryAnimation(state: GameState) {
@@ -62,11 +62,13 @@ fun VictoryAnimation(state: GameState) {
         exit = fadeOut() + shrinkOut()
     ) {
         Box(Modifier.fillMaxSize()) {
+            val animationSize = AdaptiveGameConstants.getVictorySizeDpComposable().dp
+            
             LottieAnimation(
                 composition = victoryComposition,
                 progress = { progress },
                 modifier = Modifier
-                    .size(350.dp)
+                    .size(animationSize)
                     .graphicsLayer {
                         alpha = alphaValue
                         scaleX = 1f

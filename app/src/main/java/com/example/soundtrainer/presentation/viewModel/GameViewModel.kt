@@ -7,7 +7,9 @@ import com.example.soundtrainer.data.GameSettings
 import com.example.soundtrainer.data.SpeechDetector
 import com.example.soundtrainer.models.GameIntent
 import com.example.soundtrainer.models.GameState
+import com.example.soundtrainer.utils.AdaptiveGameConstants
 import com.example.soundtrainer.utils.AdaptiveGameConstants.getBaseY
+import com.example.soundtrainer.utils.AdaptiveGameConstants.getReachedLevelHeights
 import com.example.soundtrainer.utils.GameConstants
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
@@ -129,13 +131,21 @@ class GameViewModel @Inject constructor(
             // Проверяем, это последний уровень?
             val isLastLevel = level == _state.value.difficulty.reachedLevelHeights.size - 1
             
+            // Получаем адаптивные высоты для достижения уровней
+            val adaptiveReachedLevelHeights = with(AdaptiveGameConstants) { 
+                _state.value.difficulty.getReachedLevelHeights() 
+            }
+            
+            // Получаем адаптивные смещения для лестниц
+            val adaptiveStairOffsets = AdaptiveGameConstants.getStairOffsets()
+            
             // На последнем уровне по-прежнему увеличиваем currentLevel, чтобы победная анимация активировалась,
             // но базовую позицию не меняем
             val newBaseY = if (isLastLevel) {
                 // На последнем уровне фиксируем позицию на текущей высоте
-                _state.value.difficulty.reachedLevelHeights[level]
+                adaptiveReachedLevelHeights[level]
             } else {
-                _state.value.difficulty.reachedLevelHeights[level]
+                adaptiveReachedLevelHeights[level]
             }
             
             currentState.copy(
@@ -143,8 +153,8 @@ class GameViewModel @Inject constructor(
                 currentLevel = level + 1,
                 baseY = newBaseY,
                 // На последнем уровне фиксируем текущую позицию
-                currentPosition = if (isLastLevel) _state.value.difficulty.reachedLevelHeights[level] else currentState.currentPosition,
-                offsetX = GameConstants.STAIR_OFFSETS[level],
+                currentPosition = if (isLastLevel) adaptiveReachedLevelHeights[level] else currentState.currentPosition,
+                offsetX = adaptiveStairOffsets.getOrElse(level) { GameConstants.STAIR_OFFSETS.getOrElse(level) { 0f } },
                 collectedStars = newStars,
                 isGameComplete = isLastLevel,
                 isRestartButtonVisible = isLastLevel
@@ -197,19 +207,24 @@ class GameViewModel @Inject constructor(
             // это currentLevel - 1, так как currentLevel указывает на следующий блок, к которому стремится космонавт
             val actualLevel = currentLevel - 1
 
+            // Получаем адаптивные высоты для новой сложности
+            val adaptiveReachedLevelHeights = with(AdaptiveGameConstants) { 
+                newDifficulty.getReachedLevelHeights() 
+            }
+
             // Для последующих уровней сохраняем прогресс
             // Получаем целевую высоту уровня для новой сложности
             val newBaseY = if (actualLevel < 0) {
                 getBaseY()
             } else {
-                newDifficulty.reachedLevelHeights[actualLevel]
+                adaptiveReachedLevelHeights[actualLevel]
             }
 
             // Определяем верхнюю границу текущего уровня (к которой стремится космонавт)
-            val targetLevel = if (currentLevel < newDifficulty.reachedLevelHeights.size) {
-                newDifficulty.reachedLevelHeights[currentLevel]
+            val targetLevel = if (currentLevel < adaptiveReachedLevelHeights.size) {
+                adaptiveReachedLevelHeights[currentLevel]
             } else {
-                newDifficulty.reachedLevelHeights.lastOrNull() ?: 0f
+                adaptiveReachedLevelHeights.lastOrNull() ?: 0f
             }
 
             // Вычисляем относительное положение космонавта между точками для текущей сложности
@@ -244,9 +259,9 @@ class GameViewModel @Inject constructor(
     }
 
     private fun calculateNewPosition(state: GameState, isSpeaking: Boolean): Float {
-        // Если игра завершена, космонавт должен оставаться на месте
-        if (state.isGameComplete) {
-            Log.d(TAG, "Game is complete, astronaut should stay at position: ${state.currentPosition}")
+        // Если исходная позиция не установлена, используем BASE_Y
+        if (state.baseY < 0) {
+            Log.d(TAG, "Initial baseY not set, using default")
             return state.currentPosition
         }
         
@@ -263,9 +278,18 @@ class GameViewModel @Inject constructor(
             // Используем параметры падения из настроек
             state.currentPosition + _state.value.difficulty.fallSpeed
         }
-            .coerceIn(getCurrentLevelHeight(state.currentLevel)..state.baseY)
         
-        return targetY
+        // Получаем адаптивную высоту текущего уровня
+        val currentLevelHeight = getCurrentLevelHeight(state.currentLevel)
+        
+        // Проверяем, что верхняя граница меньше нижней
+        if (currentLevelHeight > state.baseY) {
+            Log.w(TAG, "Invalid range: $currentLevelHeight..${state.baseY}, using baseY")
+            return state.currentPosition
+        }
+        
+        // Безопасный вызов coerceIn с корректным диапазоном
+        return targetY.coerceIn(currentLevelHeight..state.baseY)
     }
 
     private fun updateStars(stars: List<Boolean>, level: Int): List<Boolean> {
@@ -332,9 +356,15 @@ class GameViewModel @Inject constructor(
     private fun getCurrentLevelHeight(level: Int): Float {
         // Если уровень больше или равен размеру массива, вернем высоту последнего уровня
         return if (level >= _state.value.difficulty.reachedLevelHeights.size) {
-            _state.value.difficulty.reachedLevelHeights.lastOrNull() ?: GameState.Initial.baseY
+            // Используем адаптивные высоты
+            with(AdaptiveGameConstants) {
+                _state.value.difficulty.getReachedLevelHeights().lastOrNull() ?: GameState.Initial.baseY
+            }
         } else {
-            _state.value.difficulty.reachedLevelHeights.getOrElse(level) { GameState.Initial.baseY }
+            // Используем адаптивные высоты
+            with(AdaptiveGameConstants) {
+                _state.value.difficulty.getReachedLevelHeights().getOrElse(level) { GameState.Initial.baseY }
+            }
         }
     }
 
