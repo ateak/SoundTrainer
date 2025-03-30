@@ -1,5 +1,6 @@
 package com.example.soundtrainer.utils
 
+import android.util.Log
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalConfiguration
 import com.example.soundtrainer.data.GameSettings
@@ -34,6 +35,13 @@ object AdaptiveGameConstants {
     const val MEDIUM_PHONE_VICTORY_SIZE = 350 // Размер анимации для средних телефонов (dp)
     const val SMALL_TABLET_VICTORY_SIZE = 450 // Размер анимации для маленьких планшетов (dp)
     const val LARGE_TABLET_VICTORY_SIZE = 550 // Размер анимации для больших планшетов (dp)
+
+    // Константы для размеров космонавта
+    const val SMALL_PHONE_ASTRONAUT_SIZE = 180 // Размер космонавта для маленьких телефонов (dp)
+    const val MEDIUM_PHONE_ASTRONAUT_SIZE = 200 // Размер космонавта для средних телефонов (dp)
+    const val SMALL_TABLET_ASTRONAUT_SIZE = 240 // Размер космонавта для маленьких планшетов (dp)
+    const val MEDIUM_TABLET_ASTRONAUT_SIZE = 280 // Размер космонавта для средних планшетов (dp)
+    const val LARGE_TABLET_ASTRONAUT_SIZE = 320 // Размер космонавта для больших планшетов (dp)
 
     /**
      * Получает "стабильную" высоту экрана, которая не меняется при повороте устройства
@@ -76,7 +84,7 @@ object AdaptiveGameConstants {
             // Пытаемся получить стабильную высоту экрана
             val screenHeight = getStableScreenHeight()
             // Базовая позиция адаптируется под высоту экрана
-            return (screenHeight * 0.75f)
+            return screenHeight - getAstronautSize() * 0.6f
         } catch (e: Exception) {
             // Если не удалось получить высоту, возвращаем безопасное значение
             return 750f
@@ -276,9 +284,12 @@ object AdaptiveGameConstants {
 
     /**
      * Получает адаптивные высоты для достижения уровней в зависимости от размера экрана и сложности.
+     * Добавляет возможность учитывать текущую позицию космонавта для более точной калибровки.
      * Доступно как в Compose, так и в обычных функциях.
+     *
+     * @param baseY Базовая Y-координата космонавта (опционально)
      */
-    fun GameSettings.Difficulty.getReachedLevelHeights(): List<Float> {
+    fun GameSettings.Difficulty.getReachedLevelHeights(baseY: Float? = null): List<Float> {
         try {
             val screenHeight = getStableScreenHeight()
             val screenWidth = getStableScreenWidth()
@@ -288,6 +299,30 @@ object AdaptiveGameConstants {
             
             println("Katya originalReachedHeights $originalHeights")
             
+            // Если передана базовая координата космонавта, используем её для более точной калибровки
+            if (baseY != null) {
+                // Получаем высоты блоков
+                val levelHeights = this.levelHeights
+                println("Katya originalHeights $levelHeights")
+
+                // Вычисляем процентные соотношения для блоков
+                // Самый высокий блок (первый в списке)
+                val maxBlockHeight = levelHeights.first()
+
+                // Пропорции для каждого уровня (% от максимальной высоты)
+                val heightRatios = levelHeights.map { it / maxBlockHeight }
+
+                // Вычисляем позиции для космонавта на основе пропорций блоков
+                val result = heightRatios.map { ratio ->
+                    // Формула: чем выше блок (меньше ratio), тем ниже должна быть Y-координата космонавта
+                    baseY - (baseY * ratio * 0.7f)
+                }
+
+                println("Katya levelHeights $result")
+                return result
+            }
+
+            // Иначе применяем стандартную калибровку
             // Применяем разные коэффициенты масштабирования в зависимости от уровня сложности
             // Для планшетов используем более низкие значения
             val maxScreenHeight = when {
@@ -372,41 +407,35 @@ object AdaptiveGameConstants {
             val stairWidth = getStairWidth()
             val astronautPadding = getPaddingFromAstronaut()
             
-            // С учетом увеличенной ширины блоков, применяем специальный алгоритм размещения
+            // Вычисляем безопасное правое смещение
+            val maxRightOffset = screenWidth - stairWidth - astronautPadding / 2
             
-            // Для широких блоков мы размещаем их с небольшим перекрытием
-            // Используем 90% доступной ширины для всех блоков
-            val totalAvailableWidth = screenWidth - astronautPadding
-            val usedWidth = totalAvailableWidth * 0.9f
+            // Используем фиксированную прогрессию с увеличенными отступами вправо
+            // Отступы соответствуют очерёдности блоков слева направо
             
-            // Размещаем блоки с равными промежутками
-            // Но учитываем, что блоки теперь значительно шире
-            val blockCount = 3  // Количество блоков
+            // Рассчитываем отступ для космонавта в начальной позиции (ещё левее первого блока)
+            val initialOffset = astronautPadding / 2
             
-            // Если блоки слишком широкие и не помещаются даже с перекрытием,
-            // применяем минимальные отступы между ними
-            val spaceNeeded = stairWidth * blockCount
+            // Первый блок: значительно правее от начальной позиции (оставляем как есть)
+            val firstBlockOffset = astronautPadding * 3.0f
             
-            if (spaceNeeded > usedWidth) {
-                // Блоки слишком широкие, размещаем их с минимальными промежутками
-                // Первый блок слева, второй в центре, третий справа
-                return listOf(
-                    astronautPadding,  // Левый блок
-                    (screenWidth - stairWidth) / 2,  // Центральный блок
-                    screenWidth - stairWidth - astronautPadding  // Правый блок
-                )
-            } else {
-                // Блоки помещаются с перекрытием, равномерно распределяем их
-                val step = (usedWidth - stairWidth) / (blockCount - 1)
-                
-                return listOf(
-                    astronautPadding,  // Левый блок
-                    astronautPadding + step,  // Центральный блок
-                    astronautPadding + step * 2  // Правый блок
-                )
-            }
+            // Второй блок: намного правее центра (оставляем как есть)
+            val secondBlockOffset = (screenWidth - stairWidth) / 2 + screenWidth * 0.2f
+            
+            // Третий блок: максимально вправо с увеличенным запасом
+            // Значительно увеличиваем смещение для третьего блока
+            val thirdBlockOffset = maxRightOffset * 1.3f  // Было 1.1f - увеличиваем до 30%
+
+            // Отладочная информация
+            Log.d("AdaptiveGameConstants", "Screen width: $screenWidth, stair width: $stairWidth")
+            Log.d("AdaptiveGameConstants", "Stair offsets: initial=$initialOffset, " +
+                                          "first=$firstBlockOffset, second=$secondBlockOffset, third=$thirdBlockOffset")
+
+            // Возвращаем все отступы, включая начальный (для инициализации)
+            return listOf(initialOffset, firstBlockOffset, secondBlockOffset, thirdBlockOffset)
         } catch (e: Exception) {
-            return listOf(50f, 150f, 250f) // Безопасные значения
+            // Безопасные значения в случае ошибки - с увеличенным отступом для третьего блока
+            return listOf(0f, 180f, 320f, 550f)  // Увеличиваем только последнее значение
         }
     }
 
@@ -414,17 +443,20 @@ object AdaptiveGameConstants {
      * Получает размер космонавта в зависимости от размера экрана
      * Доступно как в Compose, так и в обычных функциях
      */
-    fun getAstronautSize(): Float {
+    fun getAstronautSize(): Int {
         try {
             val screenWidth = getStableScreenWidth()
-            // Размер космонавта (в процентах от ширины экрана)
+
             return when {
-                screenWidth < MEDIUM_PHONE_MAX_WIDTH -> 0.25f   // Маленький астронавт для телефонов
-                screenWidth < SMALL_TABLET_MAX_WIDTH -> 0.2f     // Средний для планшетов
-                else -> 0.15f  // Маленький для больших экранов
+                screenWidth < SMALL_PHONE_MAX_WIDTH -> SMALL_PHONE_ASTRONAUT_SIZE
+                screenWidth < MEDIUM_PHONE_MAX_WIDTH -> MEDIUM_PHONE_ASTRONAUT_SIZE
+                screenWidth < SMALL_TABLET_MAX_WIDTH -> SMALL_TABLET_ASTRONAUT_SIZE
+                screenWidth < MEDIUM_TABLET_MAX_WIDTH -> MEDIUM_TABLET_ASTRONAUT_SIZE
+                else -> LARGE_TABLET_ASTRONAUT_SIZE
             }
         } catch (e: Exception) {
-            return 0.25f
+            Log.e("AdaptiveGameConstants", "Ошибка при определении размера космонавта: ${e.message}")
+            return SMALL_PHONE_ASTRONAUT_SIZE // Безопасное значение по умолчанию
         }
     }
 
@@ -568,7 +600,7 @@ object AdaptiveGameConstants {
         val stairWidthRatio = getStairWidthRatioComposable()
         val stairWidth = screenWidth * stairWidthRatio
         val astronautPadding = getPaddingFromAstronautComposable()
-        
+
         // Используем ту же логику, что и в неComposable версии
         // С учетом увеличенной ширины блоков, применяем специальный алгоритм размещения
         
@@ -616,12 +648,15 @@ object AdaptiveGameConstants {
     }
 
     @Composable
-    fun getAstronautSizeComposable(): Float {
-        val screenWidth = getStableScreenWidthComposable()
+    fun getAstronautSizeComposable(): Int {
+        val screenWidth = LocalConfiguration.current.screenWidthDp
+
         return when {
-            screenWidth < MEDIUM_PHONE_MAX_WIDTH -> 0.25f   // Маленький астронавт для телефонов
-            screenWidth < SMALL_TABLET_MAX_WIDTH -> 0.2f     // Средний для планшетов
-            else -> 0.15f                // Маленький для больших экранов
+            screenWidth < SMALL_PHONE_MAX_WIDTH -> SMALL_PHONE_ASTRONAUT_SIZE
+            screenWidth < MEDIUM_PHONE_MAX_WIDTH -> MEDIUM_PHONE_ASTRONAUT_SIZE
+            screenWidth < SMALL_TABLET_MAX_WIDTH -> SMALL_TABLET_ASTRONAUT_SIZE
+            screenWidth < MEDIUM_TABLET_MAX_WIDTH -> MEDIUM_TABLET_ASTRONAUT_SIZE
+            else -> LARGE_TABLET_ASTRONAUT_SIZE
         }
     }
 

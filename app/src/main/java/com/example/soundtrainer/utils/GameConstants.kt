@@ -18,7 +18,7 @@ object GameConstants {
     val CORNER_RADIUS = 16.dp
 
     const val AMPLITUDE_THRESHOLD = 500f   // Порог активации микрофона
-    const val SOUND_CHECK_INTERVAL = 100L    // Интервал проверки звука (ms)
+    const val SOUND_CHECK_INTERVAL = 100L    // Было 100L - уменьшаем интервал проверки звука (ms)
     const val SAMPLE_RATE = 44100
 
     val MOUNTAIN_COLORS = listOf(

@@ -123,43 +123,93 @@ class GameViewModel @Inject constructor(
     }
 
     private fun handleLevelAchieved(level: Int) {
+        Log.d(TAG, "⭐ handleLevelAchieved called for level: $level")
+        
+        // Добавляем проверку на время последнего достижения уровня,
+        // чтобы предотвратить слишком быстрый переход между уровнями
+        val currentTime = System.currentTimeMillis()
+        if (currentTime - lastLevelAchievedTime < MIN_LEVEL_TRANSITION_DELAY) {
+            Log.d(TAG, "Level achievement too soon. Ignoring.")
+            return
+        }
+        
+        // Обновляем время последнего достижения
+        lastLevelAchievedTime = currentTime
+        
         _state.update { currentState ->
-            if (level >= _state.value.difficulty.reachedLevelHeights.size) return@update currentState
+            if (level >= currentState.difficulty.reachedLevelHeights.size) {
+                Log.d(TAG, "Level out of bounds: $level >= ${currentState.difficulty.reachedLevelHeights.size}")
+                return@update currentState
+            }
 
             val newStars = updateStars(currentState.collectedStars, level)
             
             // Проверяем, это последний уровень?
-            val isLastLevel = level == _state.value.difficulty.reachedLevelHeights.size - 1
+            val isLastLevel = level == currentState.difficulty.reachedLevelHeights.size - 1
+            Log.d(TAG, "isLastLevel: $isLastLevel (level=$level, max=${currentState.difficulty.reachedLevelHeights.size - 1})")
             
-            // Получаем адаптивные высоты для достижения уровней
-            val adaptiveReachedLevelHeights = with(AdaptiveGameConstants) { 
-                _state.value.difficulty.getReachedLevelHeights() 
-            }
+            // Получаем калиброванные высоты для текущей базовой позиции
+            val calibratedHeights = currentState.difficulty.getCalibratedReachedHeights(currentState.baseY)
+            Log.d(TAG, "calibratedHeights: $calibratedHeights")
             
             // Получаем адаптивные смещения для лестниц
             val adaptiveStairOffsets = AdaptiveGameConstants.getStairOffsets()
+            Log.d(TAG, "adaptiveStairOffsets: $adaptiveStairOffsets")
             
-            // На последнем уровне по-прежнему увеличиваем currentLevel, чтобы победная анимация активировалась,
-            // но базовую позицию не меняем
-            val newBaseY = if (isLastLevel) {
-                // На последнем уровне фиксируем позицию на текущей высоте
-                adaptiveReachedLevelHeights[level]
-            } else {
-                adaptiveReachedLevelHeights[level]
+            // Устанавливаем новую базовую позицию на уровень, который был достигнут
+            val newBaseY = calibratedHeights[level]
+            
+            // Добавляем вертикальный отступ, чтобы астронавт был выше над блоком
+            // Чем меньше число, тем выше позиция (координаты Y инвертированы)
+            val verticalOffset = when {
+                // Если это третий блок (level == 2), то используем увеличенный отступ
+                level == 2 -> when (currentState.difficulty) {
+                    GameSettings.Difficulty.EASY -> -30f
+                    GameSettings.Difficulty.MEDIUM -> -35f
+                    GameSettings.Difficulty.HARD -> -40f
+                }
+                // Для остальных блоков используем стандартные отступы
+                else -> when (currentState.difficulty) {
+                    GameSettings.Difficulty.EASY -> -20f
+                    GameSettings.Difficulty.MEDIUM -> -25f
+                    GameSettings.Difficulty.HARD -> -30f
+                }
             }
             
+            // Текущая позиция также устанавливается на достигнутый уровень с учетом отступа
+            val newPosition = newBaseY + verticalOffset
+            
+            // Определяем смещение по X для следующего блока
+            // Для третьего уровня (level 2) всегда используем последнее смещение
+            val offsetX = if (level == 2) {
+                // Для третьего блока (верхний) используем смещение для последнего элемента
+                adaptiveStairOffsets.last()
+            } else if (level + 1 < adaptiveStairOffsets.size) {
+                // Берем смещение для следующего уровня
+                adaptiveStairOffsets[level + 1]
+            } else {
+                // Если следующего уровня нет, берем последнее смещение в массиве
+                adaptiveStairOffsets.last()
+            }
+            
+            Log.d(TAG, "Before update - currentLevel: ${currentState.currentLevel}, " +
+                      "currentPosition: ${currentState.currentPosition}, baseY: ${currentState.baseY}")
+            Log.d(TAG, "After update - newLevel: ${level+1}, newPosition: $newPosition, newBaseY: $newBaseY, " +
+                      "verticalOffset: $verticalOffset")
+            Log.d(TAG, "Using X offset: $offsetX for level ${level+1}")
+            
             currentState.copy(
-                // Всегда увеличиваем currentLevel для корректной работы победной анимации
                 currentLevel = level + 1,
                 baseY = newBaseY,
-                // На последнем уровне фиксируем текущую позицию
-                currentPosition = if (isLastLevel) adaptiveReachedLevelHeights[level] else currentState.currentPosition,
-                offsetX = adaptiveStairOffsets.getOrElse(level) { GameConstants.STAIR_OFFSETS.getOrElse(level) { 0f } },
+                currentPosition = newPosition,
+                offsetX = offsetX,
                 collectedStars = newStars,
                 isGameComplete = isLastLevel,
                 isRestartButtonVisible = isLastLevel
             ).also {
-                Log.d(TAG, "Level $level achieved. Stars: $newStars, isLastLevel: $isLastLevel")
+                Log.d(TAG, "Level $level achieved. Stars: $newStars, isLastLevel: $isLastLevel, offsetX: $offsetX")
+                Log.d(TAG, "New state after update: level=${it.currentLevel}, " +
+                          "position=${it.currentPosition}, baseY=${it.baseY}, offsetX=${it.offsetX}")
 
                 // Если это последний уровень, останавливаем детектирование звука немедленно
                 if (isLastLevel) {
@@ -259,6 +309,8 @@ class GameViewModel @Inject constructor(
     }
 
     private fun calculateNewPosition(state: GameState, isSpeaking: Boolean): Float {
+        Log.d(TAG, "Calculating position. Speaking: $isSpeaking, level: ${state.currentLevel}")
+        
         // Если исходная позиция не установлена, используем BASE_Y
         if (state.baseY < 0) {
             Log.d(TAG, "Initial baseY not set, using default")
@@ -270,7 +322,7 @@ class GameViewModel @Inject constructor(
             Log.d(TAG, "At max level (${state.currentLevel}), keeping position: ${state.currentPosition}")
             return state.currentPosition
         }
-        
+
         val targetY = if (isSpeaking) {
             // Используем параметры подъема из настроек
             state.currentPosition - _state.value.difficulty.riseDistance
@@ -312,6 +364,10 @@ class GameViewModel @Inject constructor(
         // Применяем сброс с флагом isResetting
         _state.update { currentState ->
             Log.d(TAG, "Resetting game with immediate position change (isResetting=true)")
+            
+            // Получаем начальный отступ по X (первый элемент в списке отступов)
+            val initialOffsetX = AdaptiveGameConstants.getStairOffsets().firstOrNull() ?: 0f
+            Log.d(TAG, "Setting initial X offset to $initialOffsetX")
 
             return@update GameState.Initial.copy(
                 collectedStars = List(3) { false },
@@ -319,6 +375,7 @@ class GameViewModel @Inject constructor(
                 currentPosition = getBaseY(),
                 baseY = getBaseY(),
                 currentLevel = 0,
+                offsetX = initialOffsetX, // Устанавливаем начальный отступ
                 isGameComplete = false,
                 isRestartButtonVisible = false,
                 isSpeaking = false,
@@ -354,17 +411,39 @@ class GameViewModel @Inject constructor(
     }
 
     private fun getCurrentLevelHeight(level: Int): Float {
-        // Если уровень больше или равен размеру массива, вернем высоту последнего уровня
-        return if (level >= _state.value.difficulty.reachedLevelHeights.size) {
-            // Используем адаптивные высоты
-            with(AdaptiveGameConstants) {
-                _state.value.difficulty.getReachedLevelHeights().lastOrNull() ?: GameState.Initial.baseY
-            }
+        val state = _state.value
+        val calibratedHeights = state.difficulty.getCalibratedReachedHeights(state.baseY)
+        
+        // Добавляем отладочную информацию
+        Log.d(TAG, "Computing level height: level=$level, calibratedHeights=$calibratedHeights")
+        
+        return if (level >= calibratedHeights.size) {
+            Log.d(TAG, "Level out of bounds (getCurrentLevelHeight): $level")
+            calibratedHeights.lastOrNull() ?: state.baseY
         } else {
-            // Используем адаптивные высоты
-            with(AdaptiveGameConstants) {
-                _state.value.difficulty.getReachedLevelHeights().getOrElse(level) { GameState.Initial.baseY }
+            // Вычисляем высоту с дополнительным отступом, чтобы космонавт был выше блока
+            val verticalOffset = when {
+                // Если это третий блок (level == 2), то используем увеличенный отступ
+                level == 2 -> when (state.difficulty) {
+                    GameSettings.Difficulty.EASY -> -25f
+                    GameSettings.Difficulty.MEDIUM -> -30f
+                    GameSettings.Difficulty.HARD -> -35f
+                }
+                // Для остальных блоков используем стандартные отступы
+                else -> when (state.difficulty) {
+                    GameSettings.Difficulty.EASY -> -15f
+                    GameSettings.Difficulty.MEDIUM -> -20f
+                    GameSettings.Difficulty.HARD -> -25f
+                }
             }
+            
+            val levelHeight = calibratedHeights[level]
+            val adjustedHeight = levelHeight + verticalOffset
+            
+            Log.d(TAG, "Level $level height: $levelHeight, adjusted: $adjustedHeight, offset: $verticalOffset")
+            
+            // Возвращаем скорректированную высоту
+            adjustedHeight
         }
     }
 
@@ -373,4 +452,10 @@ class GameViewModel @Inject constructor(
         stopDetecting()
         Log.d(TAG, "ViewModel cleared")
     }
+
+    // Минимальная задержка между достижениями уровней (в миллисекундах)
+    private val MIN_LEVEL_TRANSITION_DELAY = 1000L
+    
+    // Время последнего достижения уровня
+    private var lastLevelAchievedTime = 0L
 }

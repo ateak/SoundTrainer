@@ -1,5 +1,6 @@
 package com.example.soundtrainer.presentation.components
 
+import android.util.Log
 import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateFloatAsState
@@ -71,10 +72,51 @@ fun AstronautAnimation(state: GameState, viewModel: GameViewModel) {
     LaunchedEffect(animatedY) {
         if (state.isResetting) return@LaunchedEffect
         
-        val reachedHeights = difficulty.reachedLevelHeights
-        if (state.currentLevel < reachedHeights.size && animatedY <= reachedHeights[state.currentLevel]
-        ) {
-            viewModel.processIntent(GameIntent.LevelReached(state.currentLevel))
+        // Получаем калиброванные высоты для текущей базовой позиции
+        val reachedHeights = difficulty.getCalibratedReachedHeights(state.baseY)
+        
+        // Проверяем, если текущий уровень валидный
+        if (state.currentLevel < reachedHeights.size) {
+            val targetHeight = reachedHeights[state.currentLevel]
+
+            // Вычисляем процент прогресса от базовой позиции к целевой высоте
+            // В инвертированной системе координат меньшие значения Y означают более высокую позицию,
+            // поэтому для вычисления прогресса используем обратную формулу
+            val progressPercent = if (state.baseY != targetHeight)
+                ((state.baseY - animatedY) / (state.baseY - targetHeight) * 100).coerceIn(0f, 100f)
+            else 100f
+
+            // Вычисляем соотношение между текущей позицией и базовой (как коэффициент)
+            val positionRatio = if (state.baseY != 0f) (animatedY / state.baseY) else 0f
+
+            // Детальное логирование для отладки
+            val originalHeights = difficulty.reachedLevelHeights
+            Log.d("AstronautAnimation", "⚠️ ДИАГНОСТИКА: originalHeights=$originalHeights, calibratedHeights=$reachedHeights")
+            Log.d("AstronautAnimation", "⚠️ ДИАГНОСТИКА: baseY=${state.baseY}, currentPos=${state.currentPosition}, animatedY=$animatedY")
+            Log.d("AstronautAnimation", "⚠️ ДИАГНОСТИКА: currentLevel=${state.currentLevel}, targetHeight=$targetHeight, diff=${animatedY - targetHeight}")
+            
+            // Логируем текущую позицию и отступ для отладки
+            Log.d("AstronautAnimation", "Checking level: ${state.currentLevel}, " +
+                    "position=$animatedY, baseY=${state.baseY}, offsetX=${state.offsetX}, " +
+                    "targetHeight=$targetHeight, progress=$progressPercent%, " +
+                    "positionRatio=$positionRatio")
+
+            // Добавляем допустимый порог расстояния между текущей позицией и целевой высотой
+            val heightThreshold = 60f
+            
+            // Проверяем, достаточно ли близко космонавт к целевой высоте
+            if (animatedY - targetHeight <= heightThreshold) {
+                // Логируем факт достижения уровня
+                Log.d("AstronautAnimation", "✅ LEVEL REACHED: ${state.currentLevel}, " +
+                       "position=$animatedY, targetHeight=$targetHeight, " +
+                       "progress=$progressPercent%, ratio=${animatedY/state.baseY}, " +
+                       "offsetX=${state.offsetX}")
+
+                // Уведомляем ViewModel о достижении уровня
+                viewModel.processIntent(GameIntent.LevelReached(state.currentLevel))
+            }
+        } else {
+            Log.e("AstronautAnimation", "❌ ОШИБКА: Недопустимый уровень: ${state.currentLevel}, доступно: ${reachedHeights.size}")
         }
     }
 }

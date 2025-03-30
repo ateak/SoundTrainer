@@ -86,7 +86,7 @@ fun Levels(
                 val blockCenterX = blockLeft + (stairWidth / 2)
                 
                 // Динамический отступ над блоком в зависимости от размера экрана
-                val screenWidth = AdaptiveGameConstants.getScreenWidth()
+                val screenWidth = AdaptiveGameConstants.getStableScreenWidth()
                 val heightAboveBlock = with(density) { 
                     when {
                         screenWidth < 600 -> 40.dp.toPx()  // Телефоны
@@ -96,7 +96,7 @@ fun Levels(
                 }
                 
                 // Отладочный вывод для позиций блоков и звезд
-                Log.d(TAG, "Block $index: centerX=$blockCenterX, top=$blockTop, starY=${blockTop - heightAboveBlock}")
+                //Log.d(TAG, "Block $index: centerX=$blockCenterX, top=$blockTop, starY=${blockTop - heightAboveBlock}")
                 
                 // Сохраняем позицию для звезды - точно в центре блока по горизонтали и выше блока
                 starPositions[index] = Offset(
@@ -105,7 +105,7 @@ fun Levels(
                 )
 
                 // Логируем позиции блоков
-                Log.d(TAG, "Block $index at x=${currentX + paddingFromAstronaut}, y=${size.height - height}, width=$stairWidth, height=$height")
+               // Log.d(TAG, "Block $index at x=${currentX + paddingFromAstronaut}, y=${size.height - height}, width=$stairWidth, height=$height")
                 
                 // Смещение для следующего блока
                 currentX -= stairWidth
